@@ -116,6 +116,9 @@
         <button onclick="switchView('history')" id="nav-history" class="nav-idle w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-left font-bold">
           <i class="fa-solid fa-clock-rotate-left w-5"></i> ประวัติรายการ
         </button>
+        <button onclick="switchView('yearend')" id="nav-yearend" class="nav-idle w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-left font-bold">
+          <i class="fa-solid fa-shield-halved w-5"></i> สำรอง/ปิดปี
+        </button>
       </nav>
 
       <div class="p-4 border-t border-white/10 space-y-3">
@@ -150,6 +153,7 @@
               <option value="receive">รับเข้าเป็นล็อต</option>
               <option value="lots">ตรวจสอบล็อต</option>
               <option value="history">ประวัติรายการ</option>
+              <option value="yearend">สำรอง/ปิดปี</option>
             </select>
           </div>
         </div>
@@ -401,6 +405,79 @@
           </div>
         </div>
       </section>
+
+      <!-- Year-end Backup / Archive -->
+      <section id="view-yearend" class="hidden-view flex-1 p-4 sm:p-6 lg:p-8">
+        <div class="max-w-7xl mx-auto space-y-5">
+          <div class="bg-white rounded-3xl soft-card border border-slate-200 p-5 sm:p-6">
+            <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-5">
+              <div>
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-100 text-xs font-black mb-3">
+                  <i class="fa-solid fa-shield-halved"></i> Year-end Tools
+                </div>
+                <h3 class="text-2xl font-black text-slate-950">สำรองข้อมูล / เริ่มปีใหม่</h3>
+                <p class="text-sm text-slate-500 mt-2 leading-6 max-w-3xl">
+                  ใช้สำหรับสำรองข้อมูลทั้งหมดก่อนล้างประวัติรายปี ระบบจะเก็บไฟล์สำรองเป็น JSON ไว้ในเครื่องคุณ โดยไม่เพิ่มข้อมูลลง Firebase
+                </p>
+              </div>
+              <button onclick="backupAllData()" id="btn-backup-all" class="px-5 py-3 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-black transition-all shadow-lg shadow-blue-500/20 whitespace-nowrap">
+                <i class="fa-solid fa-download"></i> สำรองข้อมูลทั้งหมด
+              </button>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="bg-white rounded-3xl soft-card border border-slate-200 p-5">
+              <div class="text-sm text-slate-500 font-bold">สินค้าในคลัง</div>
+              <div id="yearend-count-items" class="text-3xl font-black text-slate-950 mt-2">0</div>
+              <div class="text-xs text-slate-400 mt-1">รายการปัจจุบัน</div>
+            </div>
+            <div class="bg-white rounded-3xl soft-card border border-slate-200 p-5">
+              <div class="text-sm text-slate-500 font-bold">ประวัติล่าสุดที่แสดง</div>
+              <div id="yearend-count-history" class="text-3xl font-black text-slate-950 mt-2">0</div>
+              <div class="text-xs text-slate-400 mt-1">การสำรองจะดึงทั้งหมดจากฐานข้อมูล</div>
+            </div>
+            <div class="bg-white rounded-3xl soft-card border border-slate-200 p-5">
+              <div class="text-sm text-slate-500 font-bold">ล็อตล่าสุดที่แสดง</div>
+              <div id="yearend-count-lots" class="text-3xl font-black text-slate-950 mt-2">0</div>
+              <div class="text-xs text-slate-400 mt-1">การสำรองจะดึงทั้งหมดจากฐานข้อมูล</div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            <div class="bg-white rounded-3xl soft-card border border-slate-200 p-5 sm:p-6">
+              <h4 class="text-lg font-black text-slate-950 flex items-center gap-2"><i class="fa-solid fa-box-archive text-blue-600"></i> วิธีใช้แบบปีต่อปี</h4>
+              <div class="mt-4 space-y-3 text-sm text-slate-600 leading-6">
+                <div class="flex gap-3"><span class="w-7 h-7 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center font-black flex-shrink-0">1</span><span>กด <b>สำรองข้อมูลทั้งหมด</b> เพื่อเก็บสินค้า ประวัติรายการ และล็อตรับเข้าไว้เป็นไฟล์ JSON</span></div>
+                <div class="flex gap-3"><span class="w-7 h-7 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center font-black flex-shrink-0">2</span><span>ตรวจว่าไฟล์ถูกดาวน์โหลดแล้ว เช่น <b>factory-stock-backup-ปีเดือนวัน.json</b></span></div>
+                <div class="flex gap-3"><span class="w-7 h-7 rounded-xl bg-blue-50 text-blue-700 flex items-center justify-center font-black flex-shrink-0">3</span><span>ค่อยกดล้างประวัติรายปี ระบบจะไม่ลบสินค้าและจำนวนคงเหลือในคลัง</span></div>
+              </div>
+              <div class="mt-5 rounded-2xl bg-amber-50 border border-amber-100 p-4 text-sm text-amber-800 leading-6">
+                <b>แนะนำ:</b> ก่อนล้างประวัติ ให้เปิดไฟล์ JSON เช็กก่อนว่ามีข้อมูลอยู่จริง หรือเก็บไว้ใน Google Drive/External Drive อีกชุดหนึ่ง
+              </div>
+            </div>
+
+            <div class="bg-white rounded-3xl soft-card border border-rose-100 p-5 sm:p-6">
+              <h4 class="text-lg font-black text-slate-950 flex items-center gap-2"><i class="fa-solid fa-broom text-rose-600"></i> ล้างข้อมูลประวัติ</h4>
+              <p class="text-sm text-slate-500 mt-2 leading-6">ใช้ตอนขึ้นปีใหม่หรือเริ่มรอบสต๊อกใหม่ โดยข้อมูลสินค้า/จำนวนคงเหลือยังอยู่เหมือนเดิม</p>
+              <div class="mt-5 space-y-3">
+                <button onclick="clearTransactionsOnly()" id="btn-clear-history" class="w-full px-5 py-4 rounded-2xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-100 font-black transition-all text-left">
+                  <i class="fa-solid fa-clock-rotate-left mr-2"></i> ล้างเฉพาะประวัติรับเข้า/เบิกออก
+                  <div class="text-xs font-bold text-rose-500 mt-1">ไม่ลบหน้าตรวจสอบล็อต</div>
+                </button>
+                <button onclick="clearTransactionsAndLots()" id="btn-clear-year" class="w-full px-5 py-4 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-black transition-all text-left shadow-lg shadow-rose-500/20">
+                  <i class="fa-solid fa-calendar-xmark mr-2"></i> ล้างประวัติ + ล็อตรับเข้า เพื่อเริ่มปีใหม่
+                  <div class="text-xs font-bold text-rose-100 mt-1">สินค้าและจำนวนคงเหลือไม่ถูกลบ</div>
+                </button>
+                <button onclick="backupThenStartNewYear()" id="btn-backup-new-year" class="w-full px-5 py-4 rounded-2xl bg-slate-950 hover:bg-slate-800 text-white font-black transition-all text-left">
+                  <i class="fa-solid fa-shield mr-2"></i> สำรองข้อมูลก่อน แล้วล้างประวัติ + ล็อต
+                  <div class="text-xs font-bold text-slate-300 mt-1">เหมาะที่สุดสำหรับปิดรอบรายปี</div>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
     </main>
 
     <!-- Mobile Bottom Navigation -->
@@ -614,7 +691,7 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-    import { getFirestore, collection, onSnapshot, doc, addDoc, updateDoc, deleteDoc, serverTimestamp, writeBatch, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    import { getFirestore, collection, onSnapshot, getDocs, doc, addDoc, updateDoc, deleteDoc, serverTimestamp, writeBatch, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
     // =========================
     // ตั้งค่าระบบ
@@ -785,6 +862,7 @@
         renderInventoryTable();
         renderLotTable();
         updateSuggestionDatalists();
+        updateYearEndCounts();
       }, (error) => {
         console.error("Inventory load error:", error);
         showToast("ไม่สามารถโหลดข้อมูลสินค้าได้", "error");
@@ -801,6 +879,7 @@
         renderLatestHistory();
         renderHistoryTable();
         updateSuggestionDatalists();
+        updateYearEndCounts();
       }, (error) => {
         console.error("History load error:", error);
         showToast("ไม่สามารถโหลดประวัติรายการได้", "error");
@@ -813,6 +892,7 @@
         lotsData = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
         renderLotsTable();
         updateSuggestionDatalists();
+        updateYearEndCounts();
       }, (error) => {
         console.error("Lots load error:", error);
         showToast("ไม่สามารถโหลดข้อมูลล็อตได้", "error");
@@ -1195,7 +1275,7 @@
     // Navigation
     // =========================
     window.switchView = function(viewId) {
-      ["dashboard", "inventory", "receive", "lots", "history"].forEach(id => {
+      ["dashboard", "inventory", "receive", "lots", "history", "yearend"].forEach(id => {
         document.getElementById(`view-${id}`).classList.toggle("hidden-view", id !== viewId);
         const nav = document.getElementById(`nav-${id}`);
         if (nav) {
@@ -1212,7 +1292,8 @@
         inventory: "จัดการคลังสินค้า",
         receive: "รับเข้าสินค้าเป็นล็อต",
         lots: "ตรวจสอบล็อตรับเข้า",
-        history: "ประวัติรายการ"
+        history: "ประวัติรายการ",
+        yearend: "สำรองข้อมูล / เริ่มปีใหม่"
       };
       document.getElementById("page-title").innerText = titles[viewId] || "FactoryStock";
       const mobileNav = document.getElementById("mobile-nav");
@@ -1916,6 +1997,194 @@
         historyPersonText(item)
       ]));
       openPrintWindow("รายงานประวัติรายการ", `<p>จำนวนรายการ: <b>${formatNumber(rows.length)}</b></p>${table}`);
+    };
+
+    // =========================
+    // Year-end Backup / Clear History
+    // =========================
+    function updateYearEndCounts() {
+      const itemEl = document.getElementById("yearend-count-items");
+      const historyEl = document.getElementById("yearend-count-history");
+      const lotsEl = document.getElementById("yearend-count-lots");
+      if (itemEl) itemEl.textContent = formatNumber(inventoryData.length);
+      if (historyEl) historyEl.textContent = formatNumber(historyData.length);
+      if (lotsEl) lotsEl.textContent = formatNumber(lotsData.length);
+    }
+
+    async function readCollectionForBackup(collectionRef) {
+      const snapshot = await getDocs(collectionRef);
+      return snapshot.docs.map(d => normalizeBackupValue({ id: d.id, ...d.data() }));
+    }
+
+    function normalizeBackupValue(value) {
+      if (value === null || value === undefined) return value;
+      if (typeof value.toDate === "function") return value.toDate().toISOString();
+      if (Array.isArray(value)) return value.map(normalizeBackupValue);
+      if (typeof value === "object") {
+        const output = {};
+        Object.entries(value).forEach(([key, val]) => output[key] = normalizeBackupValue(val));
+        return output;
+      }
+      return value;
+    }
+
+    function compactDateTimeForFile() {
+      const d = new Date();
+      const pad = n => String(n).padStart(2, "0");
+      return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}`;
+    }
+
+    function downloadJson(filename, data) {
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    function setButtonBusy(buttonId, busy, busyText = "กำลังทำงาน...") {
+      const btn = document.getElementById(buttonId);
+      if (!btn) return;
+      if (busy) {
+        btn.dataset.originalHtml = btn.innerHTML;
+        btn.disabled = true;
+        btn.classList.add("opacity-70", "cursor-not-allowed");
+        btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> ${escapeHtml(busyText)}`;
+      } else {
+        btn.disabled = false;
+        btn.classList.remove("opacity-70", "cursor-not-allowed");
+        if (btn.dataset.originalHtml) btn.innerHTML = btn.dataset.originalHtml;
+      }
+    }
+
+    async function buildFullBackupPayload() {
+      const [inventory, transactions, lots] = await Promise.all([
+        readCollectionForBackup(paths.inventory()),
+        readCollectionForBackup(paths.transactions()),
+        readCollectionForBackup(paths.lots())
+      ]);
+      return {
+        backupType: "FactoryStock full backup",
+        version: "v8-yearend-backup",
+        appId,
+        exportedAt: new Date().toISOString(),
+        exportedAtText: new Date().toLocaleString("th-TH"),
+        counts: {
+          inventory: inventory.length,
+          transactions: transactions.length,
+          lots: lots.length
+        },
+        data: {
+          inventory,
+          transactions,
+          lots
+        }
+      };
+    }
+
+    window.backupAllData = async function() {
+      setButtonBusy("btn-backup-all", true, "กำลังสำรองข้อมูล...");
+      try {
+        const payload = await buildFullBackupPayload();
+        downloadJson(`factory-stock-backup-${compactDateTimeForFile()}.json`, payload);
+        showToast(`สำรองข้อมูลแล้ว: สินค้า ${payload.counts.inventory} / ประวัติ ${payload.counts.transactions} / ล็อต ${payload.counts.lots}`, "success");
+        return payload;
+      } catch (error) {
+        console.error("Backup error:", error);
+        showToast("สำรองข้อมูลไม่สำเร็จ กรุณาลองใหม่", "error");
+        throw error;
+      } finally {
+        setButtonBusy("btn-backup-all", false);
+      }
+    };
+
+    async function deleteCollectionInBatches(collectionRef, label = "ข้อมูล") {
+      const snapshot = await getDocs(collectionRef);
+      if (snapshot.empty) return 0;
+      let count = 0;
+      let batch = writeBatch(db);
+      let batchCount = 0;
+      for (const d of snapshot.docs) {
+        batch.delete(d.ref);
+        count += 1;
+        batchCount += 1;
+        if (batchCount === 450) {
+          await batch.commit();
+          batch = writeBatch(db);
+          batchCount = 0;
+        }
+      }
+      if (batchCount > 0) await batch.commit();
+      return count;
+    }
+
+    window.clearTransactionsOnly = async function() {
+      const ok = await confirmDialog({
+        title: "ล้างเฉพาะประวัติรายการ?",
+        message: "ระบบจะลบประวัติรับเข้า/เบิกออก/สร้างสินค้า/ลบสินค้า แต่ยังเก็บข้อมูลสินค้าและล็อตรับเข้าไว้เหมือนเดิม แนะนำให้สำรองข้อมูลก่อน",
+        okText: "ล้างประวัติ"
+      });
+      if (!ok) return;
+      setButtonBusy("btn-clear-history", true, "กำลังล้างประวัติ...");
+      try {
+        const deleted = await deleteCollectionInBatches(paths.transactions(), "ประวัติ");
+        showToast(`ล้างประวัติแล้ว ${deleted} รายการ`, "success");
+      } catch (error) {
+        console.error("Clear history error:", error);
+        showToast("ล้างประวัติไม่สำเร็จ", "error");
+      } finally {
+        setButtonBusy("btn-clear-history", false);
+      }
+    };
+
+    window.clearTransactionsAndLots = async function() {
+      const ok = await confirmDialog({
+        title: "เริ่มปีใหม่โดยล้างประวัติและล็อต?",
+        message: "ระบบจะลบประวัติรายการและหน้าตรวจสอบล็อตทั้งหมด แต่ไม่ลบสินค้าและจำนวนคงเหลือในคลัง แนะนำให้สำรองข้อมูลก่อนเสมอ",
+        okText: "ล้างและเริ่มปีใหม่"
+      });
+      if (!ok) return;
+      setButtonBusy("btn-clear-year", true, "กำลังล้างข้อมูล...");
+      try {
+        const [deletedTransactions, deletedLots] = await Promise.all([
+          deleteCollectionInBatches(paths.transactions(), "ประวัติ"),
+          deleteCollectionInBatches(paths.lots(), "ล็อต")
+        ]);
+        showToast(`ล้างแล้ว: ประวัติ ${deletedTransactions} รายการ / ล็อต ${deletedLots} รายการ`, "success");
+      } catch (error) {
+        console.error("Clear year error:", error);
+        showToast("ล้างข้อมูลปีใหม่ไม่สำเร็จ", "error");
+      } finally {
+        setButtonBusy("btn-clear-year", false);
+      }
+    };
+
+    window.backupThenStartNewYear = async function() {
+      const ok = await confirmDialog({
+        title: "สำรองข้อมูลแล้วเริ่มปีใหม่?",
+        message: "ระบบจะดาวน์โหลดไฟล์สำรองก่อน จากนั้นจะล้างประวัติรายการและล็อตรับเข้า โดยยังเก็บสินค้าและจำนวนคงเหลือไว้",
+        okText: "สำรองและล้าง"
+      });
+      if (!ok) return;
+      setButtonBusy("btn-backup-new-year", true, "กำลังสำรองและล้าง...");
+      try {
+        const payload = await buildFullBackupPayload();
+        downloadJson(`factory-stock-year-end-backup-${compactDateTimeForFile()}.json`, payload);
+        const [deletedTransactions, deletedLots] = await Promise.all([
+          deleteCollectionInBatches(paths.transactions(), "ประวัติ"),
+          deleteCollectionInBatches(paths.lots(), "ล็อต")
+        ]);
+        showToast(`สำรองแล้ว และล้างประวัติ ${deletedTransactions} / ล็อต ${deletedLots}`, "success");
+      } catch (error) {
+        console.error("Backup and clear error:", error);
+        showToast("สำรองหรือล้างข้อมูลไม่สำเร็จ", "error");
+      } finally {
+        setButtonBusy("btn-backup-new-year", false);
+      }
     };
 
     function downloadExcel(filename, headers, rows, sheetTitle) {
