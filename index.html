@@ -110,6 +110,9 @@
         <button onclick="switchView('receive')" id="nav-receive" class="nav-idle w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-left font-bold">
           <i class="fa-solid fa-truck-ramp-box w-5"></i> รับเข้าเป็นล็อต
         </button>
+        <button onclick="switchView('lots')" id="nav-lots" class="nav-idle w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-left font-bold">
+          <i class="fa-solid fa-barcode w-5"></i> ตรวจสอบล็อต
+        </button>
         <button onclick="switchView('history')" id="nav-history" class="nav-idle w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-left font-bold">
           <i class="fa-solid fa-clock-rotate-left w-5"></i> ประวัติรายการ
         </button>
@@ -145,6 +148,7 @@
               <option value="dashboard">ภาพรวมระบบ</option>
               <option value="inventory">คลังสินค้า</option>
               <option value="receive">รับเข้าเป็นล็อต</option>
+              <option value="lots">ตรวจสอบล็อต</option>
               <option value="history">ประวัติรายการ</option>
             </select>
           </div>
@@ -278,12 +282,24 @@
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 rounded-3xl bg-slate-50 border border-slate-200 p-4">
               <div>
+                <label class="text-sm font-black text-slate-700">รหัสล็อต / เลขรับเข้า</label>
+                <div class="mt-2 flex gap-2">
+                  <input type="text" id="lot-code" placeholder="เว้นว่างเพื่อให้ระบบสร้างอัตโนมัติ" class="w-full p-3 rounded-2xl border border-slate-200 bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none font-semibold" />
+                  <button type="button" onclick="fillLotCode()" class="px-4 rounded-2xl bg-blue-50 hover:bg-blue-100 text-blue-700 font-black border border-blue-100" title="สร้างรหัสล็อต"><i class="fa-solid fa-wand-magic-sparkles"></i></button>
+                </div>
+                <p class="mt-1 text-xs text-slate-500 font-semibold">ตัวอย่าง: LOT-20260502-1530</p>
+              </div>
+              <div>
+                <label class="text-sm font-black text-slate-700">ผู้ขาย / แหล่งที่มา ของล็อตนี้</label>
+                <input type="text" id="lot-supplier" list="supplier-suggestions" placeholder="เช่น บริษัท ABC Supply / เบิกจากคลังกลาง" class="mt-2 w-full p-3 rounded-2xl border border-slate-200 bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none font-semibold" />
+              </div>
+              <div>
                 <label class="text-sm font-black text-slate-700">หมายเหตุทั้งล็อต</label>
                 <input type="text" id="lot-note" value="รับเข้าเป็นล็อต" class="mt-2 w-full p-3 rounded-2xl border border-slate-200 bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none font-semibold" />
               </div>
               <div>
                 <label class="text-sm font-black text-slate-700">ผู้ทำรายการ</label>
-                <input type="text" id="lot-actor-name" data-actor-input oninput="rememberActorName(this.value)" placeholder="ชื่อผู้ทำรายการ" class="mt-2 w-full p-3 rounded-2xl border border-slate-200 bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none font-semibold" />
+                <input type="text" id="lot-actor-name" list="actor-suggestions" data-actor-input oninput="rememberActorName(this.value)" placeholder="ชื่อผู้ทำรายการ" class="mt-2 w-full p-3 rounded-2xl border border-slate-200 bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none font-semibold" />
               </div>
             </div>
 
@@ -293,6 +309,47 @@
                 <i class="fa-solid fa-check"></i> บันทึกรับเข้าทั้งล็อต
               </button>
             </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Lots -->
+      <section id="view-lots" class="hidden-view flex-1 p-4 sm:p-6 lg:p-8">
+        <div class="max-w-7xl mx-auto bg-white rounded-3xl soft-card border border-slate-200 overflow-hidden">
+          <div class="p-5 sm:p-6 border-b border-slate-100 flex flex-col xl:flex-row gap-4 xl:items-center xl:justify-between">
+            <div>
+              <h3 class="text-xl font-black text-slate-950 flex items-center gap-2"><i class="fa-solid fa-barcode text-blue-600"></i> ตรวจสอบล็อตรับเข้า</h3>
+              <p class="text-sm text-slate-500 mt-1">ดูว่าแต่ละล็อตมีสินค้า/อุปกรณ์อะไรเข้ามาบ้าง พร้อมจำนวนและยอดก่อน-หลังรับเข้า</p>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-[1fr_150px_150px_auto_auto] gap-3 w-full xl:w-auto xl:min-w-[760px]">
+              <div class="relative">
+                <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+                <input type="text" id="lot-search-input" oninput="renderLotsTable()" placeholder="ค้นหารหัสล็อต / สินค้า / SKU / ผู้ขาย / ผู้ทำ..." class="w-full pl-11 pr-4 py-3 rounded-2xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 font-semibold" />
+              </div>
+              <input type="date" id="lot-from-date" onchange="renderLotsTable()" class="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 font-bold text-slate-700" title="ตั้งแต่วันที่" />
+              <input type="date" id="lot-to-date" onchange="renderLotsTable()" class="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 font-bold text-slate-700" title="ถึงวันที่" />
+              <button onclick="exportLots()" class="px-5 py-3 rounded-2xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-black border border-emerald-100 transition-all whitespace-nowrap"><i class="fa-solid fa-file-excel"></i> Export</button>
+              <button onclick="printLotsReport()" class="px-5 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-black transition-all whitespace-nowrap"><i class="fa-solid fa-print"></i> พิมพ์</button>
+            </div>
+          </div>
+
+          <div id="lots-mobile-cards" class="mobile-card-list p-4 space-y-3 bg-slate-50"></div>
+
+          <div class="desktop-table-wrap overflow-x-auto">
+            <table class="w-full text-left min-w-[1100px]">
+              <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                <tr>
+                  <th class="px-6 py-4 font-black">รหัสล็อต</th>
+                  <th class="px-6 py-4 font-black">วันที่รับเข้า</th>
+                  <th class="px-6 py-4 font-black text-right">จำนวนรายการ</th>
+                  <th class="px-6 py-4 font-black text-right">จำนวนรวม</th>
+                  <th class="px-6 py-4 font-black">ผู้ขาย / หมายเหตุ</th>
+                  <th class="px-6 py-4 font-black">ผู้ทำรายการ</th>
+                  <th class="px-6 py-4 font-black text-right">จัดการ</th>
+                </tr>
+              </thead>
+              <tbody id="lots-table" class="divide-y divide-slate-100"></tbody>
+            </table>
           </div>
         </div>
       </section>
@@ -308,7 +365,7 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-[1fr_150px_150px_150px_auto_auto] gap-3 w-full xl:w-auto xl:min-w-[900px]">
               <div class="relative">
                 <i class="fa-solid fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                <input type="text" id="history-search-input" oninput="renderHistoryTable()" placeholder="ค้นหาสินค้า / SKU / หมายเหตุ / ผู้ทำ..." class="w-full pl-11 pr-4 py-3 rounded-2xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 font-semibold" />
+                <input type="text" id="history-search-input" oninput="renderHistoryTable()" placeholder="ค้นหาสินค้า / SKU / ผู้เบิก / เบิกไปทำอะไร..." class="w-full pl-11 pr-4 py-3 rounded-2xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 font-semibold" />
               </div>
               <select id="history-type-filter" onchange="renderHistoryTable()" class="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 font-black text-slate-700">
                 <option value="">ทุกประเภท</option>
@@ -336,7 +393,7 @@
                   <th class="px-6 py-4 font-black text-right">จำนวน</th>
                   <th class="px-6 py-4 font-black text-right">ก่อน</th>
                   <th class="px-6 py-4 font-black text-right">หลัง</th>
-                  <th class="px-6 py-4 font-black">หมายเหตุ / ผู้ทำ</th>
+                  <th class="px-6 py-4 font-black">รายละเอียดรายการ</th>
                 </tr>
               </thead>
               <tbody id="history-table" class="divide-y divide-slate-100"></tbody>
@@ -348,7 +405,7 @@
 
     <!-- Mobile Bottom Navigation -->
     <nav class="mobile-bottom-nav lg:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-xl border-t border-slate-200 px-3 pt-2 pb-[calc(env(safe-area-inset-bottom)+.5rem)]">
-      <div class="grid grid-cols-4 gap-2 max-w-md mx-auto">
+      <div class="grid grid-cols-5 gap-1 max-w-lg mx-auto">
         <button onclick="switchView('dashboard')" id="bottom-nav-dashboard" class="mobile-tab-active flex flex-col items-center justify-center gap-1 rounded-2xl py-2 text-[11px] font-black transition-all">
           <i class="fa-solid fa-chart-pie text-lg"></i><span>ภาพรวม</span>
         </button>
@@ -357,6 +414,9 @@
         </button>
         <button onclick="switchView('receive')" id="bottom-nav-receive" class="mobile-tab-idle flex flex-col items-center justify-center gap-1 rounded-2xl py-2 text-[11px] font-black transition-all">
           <i class="fa-solid fa-truck-ramp-box text-lg"></i><span>รับล็อต</span>
+        </button>
+        <button onclick="switchView('lots')" id="bottom-nav-lots" class="mobile-tab-idle flex flex-col items-center justify-center gap-1 rounded-2xl py-2 text-[11px] font-black transition-all">
+          <i class="fa-solid fa-barcode text-lg"></i><span>ล็อต</span>
         </button>
         <button onclick="switchView('history')" id="bottom-nav-history" class="mobile-tab-idle flex flex-col items-center justify-center gap-1 rounded-2xl py-2 text-[11px] font-black transition-all">
           <i class="fa-solid fa-clock-rotate-left text-lg"></i><span>ประวัติ</span>
@@ -378,10 +438,17 @@
       <form onsubmit="saveItem(event)" class="p-6 space-y-5 overflow-y-auto flex-1">
         <input type="hidden" id="item-id" />
 
+        <datalist id="category-suggestions"></datalist>
+        <datalist id="unit-suggestions"></datalist>
+        <datalist id="location-suggestions"></datalist>
+        <datalist id="supplier-suggestions"></datalist>
+        <datalist id="actor-suggestions"></datalist>
+
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label class="text-sm font-black text-slate-700">รหัสสินค้า (SKU) *</label>
-            <input required type="text" id="item-sku" class="mt-2 w-full p-3 rounded-2xl border border-slate-200 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none font-semibold" />
+            <input required type="text" id="item-sku" oninput="checkSkuDuplicate()" class="mt-2 w-full p-3 rounded-2xl border border-slate-200 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none font-semibold" />
+            <p id="sku-duplicate-hint" class="hidden-view mt-2 text-xs font-bold text-rose-600"><i class="fa-solid fa-circle-exclamation"></i> SKU นี้มีอยู่ในระบบแล้ว กรุณาใช้รหัสอื่น</p>
           </div>
           <div>
             <label class="text-sm font-black text-slate-700">ชื่อสินค้า *</label>
@@ -392,22 +459,22 @@
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label class="text-sm font-black text-slate-700">หมวดหมู่</label>
-            <input type="text" id="item-category" placeholder="เช่น วัตถุดิบ, อะไหล่, อุปกรณ์" class="mt-2 w-full p-3 rounded-2xl border border-slate-200 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none font-semibold" />
+            <input type="text" id="item-category" list="category-suggestions" placeholder="เช่น วัตถุดิบ, อะไหล่, อุปกรณ์" class="mt-2 w-full p-3 rounded-2xl border border-slate-200 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none font-semibold" />
           </div>
           <div>
             <label class="text-sm font-black text-slate-700">หน่วยนับ *</label>
-            <input required type="text" id="item-unit" placeholder="เช่น ชิ้น, กล่อง, ม้วน" class="mt-2 w-full p-3 rounded-2xl border border-slate-200 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none font-semibold" />
+            <input required type="text" id="item-unit" list="unit-suggestions" placeholder="เช่น ชิ้น, กล่อง, ม้วน" class="mt-2 w-full p-3 rounded-2xl border border-slate-200 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none font-semibold" />
           </div>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label class="text-sm font-black text-slate-700">ตำแหน่งจัดเก็บ</label>
-            <input type="text" id="item-location" placeholder="เช่น ชั้น A1, โซนวัตถุดิบ, ห้องอะไหล่" class="mt-2 w-full p-3 rounded-2xl border border-slate-200 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none font-semibold" />
+            <input type="text" id="item-location" list="location-suggestions" placeholder="เช่น ชั้น A1, โซนวัตถุดิบ, ห้องอะไหล่" class="mt-2 w-full p-3 rounded-2xl border border-slate-200 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none font-semibold" />
           </div>
           <div>
             <label class="text-sm font-black text-slate-700">ซัพพลายเออร์ / ร้านที่ซื้อ</label>
-            <input type="text" id="item-supplier" placeholder="เช่น ABC Supply" class="mt-2 w-full p-3 rounded-2xl border border-slate-200 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none font-semibold" />
+            <input type="text" id="item-supplier" list="supplier-suggestions" placeholder="เช่น ABC Supply" class="mt-2 w-full p-3 rounded-2xl border border-slate-200 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none font-semibold" />
           </div>
         </div>
 
@@ -473,13 +540,15 @@
         </div>
 
         <div>
-          <label class="text-sm font-black text-slate-700">หมายเหตุรายการ</label>
+          <label id="stock-note-label" class="text-sm font-black text-slate-700">หมายเหตุรายการ</label>
           <input type="text" id="stock-note" placeholder="เช่น ใช้ในไลน์ผลิต A / ซื้อเข้าใหม่" class="mt-2 w-full p-3 rounded-2xl border border-slate-200 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none font-semibold" />
+          <p id="stock-note-helper" class="mt-2 text-xs text-slate-500 font-bold hidden-view"></p>
         </div>
 
         <div>
-          <label class="text-sm font-black text-slate-700">ผู้ทำรายการ</label>
-          <input type="text" id="stock-actor-name" data-actor-input oninput="rememberActorName(this.value)" placeholder="ชื่อผู้ทำรายการ" class="mt-2 w-full p-3 rounded-2xl border border-slate-200 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none font-semibold" />
+          <label id="stock-actor-label" class="text-sm font-black text-slate-700">ผู้ทำรายการ</label>
+          <input type="text" id="stock-actor-name" list="actor-suggestions" data-actor-input oninput="rememberActorName(this.value)" placeholder="ชื่อผู้ทำรายการ" class="mt-2 w-full p-3 rounded-2xl border border-slate-200 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none font-semibold" />
+          <p id="stock-actor-helper" class="mt-2 text-xs text-slate-500 font-bold hidden-view"></p>
         </div>
 
         <div class="pt-2 flex flex-col sm:flex-row justify-end gap-3">
@@ -487,6 +556,41 @@
           <button type="submit" id="stock-submit-btn" class="px-6 py-3 rounded-2xl text-white font-black shadow-lg transition-all">ยืนยัน</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- Modal: รายละเอียดล็อต -->
+  <div id="lot-detail-modal" class="hidden-view fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-3 sm:p-4">
+    <div class="bg-white rounded-3xl soft-card w-full max-w-4xl overflow-hidden flex flex-col max-h-[92vh] border border-white/50">
+      <div class="px-6 py-5 border-b border-slate-100 flex justify-between items-start bg-slate-50 flex-shrink-0">
+        <div class="min-w-0">
+          <h3 id="lot-detail-title" class="text-xl font-black text-slate-950 truncate">รายละเอียดล็อต</h3>
+          <p id="lot-detail-subtitle" class="text-sm text-slate-500 mt-1">รายการสินค้าในล็อตนี้</p>
+        </div>
+        <button onclick="closeLotDetailModal()" class="w-10 h-10 rounded-2xl bg-white hover:bg-slate-100 text-slate-500 transition-all flex-shrink-0"><i class="fa-solid fa-xmark text-xl"></i></button>
+      </div>
+      <div class="p-5 sm:p-6 overflow-y-auto flex-1 space-y-4">
+        <div id="lot-detail-meta" class="grid grid-cols-1 sm:grid-cols-4 gap-3"></div>
+        <div class="overflow-x-auto rounded-3xl border border-slate-200">
+          <table class="w-full text-left min-w-[780px]">
+            <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+              <tr>
+                <th class="px-5 py-4 font-black">SKU</th>
+                <th class="px-5 py-4 font-black">สินค้า</th>
+                <th class="px-5 py-4 font-black text-right">รับเข้า</th>
+                <th class="px-5 py-4 font-black text-right">ก่อนรับ</th>
+                <th class="px-5 py-4 font-black text-right">หลังรับ</th>
+                <th class="px-5 py-4 font-black">ที่เก็บ</th>
+              </tr>
+            </thead>
+            <tbody id="lot-detail-items" class="divide-y divide-slate-100"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="px-6 py-4 border-t border-slate-100 bg-white flex flex-col sm:flex-row justify-end gap-3 flex-shrink-0">
+        <button type="button" onclick="printCurrentLotDetail()" class="px-5 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-black transition-all"><i class="fa-solid fa-print"></i> พิมพ์ล็อตนี้</button>
+        <button type="button" onclick="closeLotDetailModal()" class="px-5 py-3 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-black transition-all">ปิด</button>
+      </div>
     </div>
   </div>
 
@@ -535,14 +639,17 @@
 
     let inventoryData = [];
     let historyData = [];
+    let lotsData = [];
     let currentUser = { uid: "local-passcode-user" };
     let lotItems = [{ itemId: "", quantity: "" }];
+    let currentLotDetailId = null;
     let appStarted = false;
     let loadTimer = null;
 
     const paths = {
       inventory: () => collection(db, "artifacts", appId, "public", "data", "inventory"),
-      transactions: () => collection(db, "artifacts", appId, "public", "data", "transactions")
+      transactions: () => collection(db, "artifacts", appId, "public", "data", "transactions"),
+      lots: () => collection(db, "artifacts", appId, "public", "data", "lots")
     };
 
     // =========================
@@ -652,6 +759,7 @@
       setDbStatus(true, "ออนไลน์");
       fetchInventory();
       fetchHistory();
+      fetchLots();
     }
 
     function setDbStatus(online, text) {
@@ -676,6 +784,7 @@
         renderDashboard();
         renderInventoryTable();
         renderLotTable();
+        updateSuggestionDatalists();
       }, (error) => {
         console.error("Inventory load error:", error);
         showToast("ไม่สามารถโหลดข้อมูลสินค้าได้", "error");
@@ -691,9 +800,22 @@
         historyData = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
         renderLatestHistory();
         renderHistoryTable();
+        updateSuggestionDatalists();
       }, (error) => {
         console.error("History load error:", error);
         showToast("ไม่สามารถโหลดประวัติรายการได้", "error");
+      });
+    }
+
+    function fetchLots() {
+      const q = query(paths.lots(), orderBy("createdAt", "desc"), limit(120));
+      onSnapshot(q, (snapshot) => {
+        lotsData = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+        renderLotsTable();
+        updateSuggestionDatalists();
+      }, (error) => {
+        console.error("Lots load error:", error);
+        showToast("ไม่สามารถโหลดข้อมูลล็อตได้", "error");
       });
     }
 
@@ -876,6 +998,7 @@
                 <div class="text-xs font-bold text-slate-400 flex-shrink-0">${formatDate(item.createdAt)}</div>
               </div>
               <div class="text-sm text-slate-500 mt-1">${historyTypeText(item.type)} · ${formatNumber(number(item.quantity))} ${escapeHtml(item.unit || "")}</div>
+              <div class="text-xs text-slate-400 mt-1 truncate">${escapeHtml(historyNoteLabel(item))}: ${escapeHtml(historyNoteText(item))} · ${escapeHtml(historyPersonLabel(item))}: ${escapeHtml(historyPersonText(item))}</div>
             </div>
           </div>
         </div>
@@ -910,8 +1033,9 @@
           <div class="mt-3 text-xs text-slate-600 space-y-1">
             <div><i class="fa-solid fa-clock text-slate-400 mr-1"></i>${formatDate(item.createdAt)}</div>
             ${item.location ? `<div><i class="fa-solid fa-location-dot text-blue-500 mr-1"></i>${escapeHtml(item.location)}</div>` : ""}
-            <div><i class="fa-solid fa-note-sticky text-slate-400 mr-1"></i>${escapeHtml(item.note || "-")}</div>
-            <div><i class="fa-solid fa-user text-slate-400 mr-1"></i>${escapeHtml(item.actorName || item.actor || "-")}</div>
+            ${item.lotCode ? `<div><i class="fa-solid fa-barcode text-blue-500 mr-1"></i>${escapeHtml(item.lotCode)}</div>` : ""}
+            <div><i class="fa-solid fa-note-sticky text-slate-400 mr-1"></i><span class="font-black">${escapeHtml(historyNoteLabel(item))}:</span> ${escapeHtml(historyNoteText(item))}</div>
+            <div><i class="fa-solid fa-user text-slate-400 mr-1"></i><span class="font-black">${escapeHtml(historyPersonLabel(item))}:</span> ${escapeHtml(historyPersonText(item))}</div>
           </div>
         </article>
       `).join("");
@@ -941,12 +1065,115 @@
           <td class="px-6 py-4 text-right font-bold text-slate-500">${formatNumber(number(item.beforeQty))}</td>
           <td class="px-6 py-4 text-right font-black text-slate-900">${formatNumber(number(item.afterQty))}</td>
           <td class="px-6 py-4">
-            <div class="font-bold text-slate-700">${escapeHtml(item.note || "-")}</div>
-            <div class="text-xs text-slate-500 mt-1"><i class="fa-solid fa-user"></i> ${escapeHtml(item.actorName || item.actor || "-")}</div>
+            ${item.lotCode ? `<div class="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-100 text-xs font-black mb-2"><i class="fa-solid fa-barcode"></i> ${escapeHtml(item.lotCode)}</div>` : ""}
+            <div class="text-xs text-slate-400 font-black mb-1">${escapeHtml(historyNoteLabel(item))}</div>
+            <div class="font-bold text-slate-700">${escapeHtml(historyNoteText(item))}</div>
+            <div class="text-xs text-slate-500 mt-2"><i class="fa-solid fa-user"></i> <span class="font-black">${escapeHtml(historyPersonLabel(item))}:</span> ${escapeHtml(historyPersonText(item))}</div>
           </td>
         </tr>
       `).join("");
     };
+
+
+    function renderLotsMobileCards(items) {
+      const box = document.getElementById("lots-mobile-cards");
+      if (!box) return;
+      if (items.length === 0) {
+        box.innerHTML = `<div class="rounded-3xl bg-white border border-slate-200 p-8 text-center text-slate-500 font-bold">ยังไม่มีล็อตรับเข้า หรือไม่พบข้อมูลที่ค้นหา</div>`;
+        return;
+      }
+      box.innerHTML = items.map(lot => `
+        <article class="mobile-tight-card bg-white border border-slate-200 p-4 shadow-sm">
+          <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+              <div class="text-xs text-slate-400 font-bold mb-1">รหัสล็อต</div>
+              <h4 class="font-black text-slate-950 leading-snug">${escapeHtml(lot.lotCode || lot.id || "-")}</h4>
+              <div class="text-xs text-slate-500 mt-1"><i class="fa-solid fa-clock text-slate-400"></i> ${formatDate(lot.createdAt)}</div>
+            </div>
+            <span class="status-pill bg-blue-50 text-blue-700 border border-blue-100">${formatNumber(number(lot.itemCount || (lot.items || []).length))} รายการ</span>
+          </div>
+          <div class="mt-3 grid grid-cols-2 gap-2 text-xs">
+            <div class="rounded-2xl bg-slate-50 border border-slate-100 p-3"><div class="text-slate-400 font-bold">จำนวนรวม</div><div class="font-black text-slate-900">${formatNumber(number(lot.totalQty))}</div></div>
+            <div class="rounded-2xl bg-slate-50 border border-slate-100 p-3"><div class="text-slate-400 font-bold">ผู้ทำ</div><div class="font-black text-slate-700 truncate">${escapeHtml(lot.actorName || lot.actor || "-")}</div></div>
+          </div>
+          <div class="mt-3 text-xs text-slate-600 space-y-1">
+            ${lot.supplierName ? `<div><i class="fa-solid fa-store text-blue-500 mr-1"></i>${escapeHtml(lot.supplierName)}</div>` : ""}
+            <div><i class="fa-solid fa-note-sticky text-slate-400 mr-1"></i>${escapeHtml(lot.note || "-")}</div>
+          </div>
+          <button onclick="openLotDetail('${lot.id}')" class="mt-4 w-full px-4 py-3 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-black transition-all"><i class="fa-solid fa-eye"></i> ดูของในล็อตนี้</button>
+        </article>
+      `).join("");
+    }
+
+    window.renderLotsTable = function() {
+      const tbody = document.getElementById("lots-table");
+      const filtered = getFilteredLots();
+      renderLotsMobileCards(filtered);
+      if (!tbody) return;
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="px-6 py-14 text-center text-slate-500 font-bold">ยังไม่มีล็อตรับเข้า หรือไม่พบข้อมูลที่ค้นหา</td></tr>`;
+        return;
+      }
+      tbody.innerHTML = filtered.map(lot => `
+        <tr class="hover:bg-slate-50 transition-all">
+          <td class="px-6 py-4">
+            <div class="font-black text-slate-950">${escapeHtml(lot.lotCode || lot.id || "-")}</div>
+            <div class="text-xs text-slate-500 mt-1">ID: ${escapeHtml(lot.id || "-")}</div>
+          </td>
+          <td class="px-6 py-4 text-sm font-bold text-slate-600">${formatDate(lot.createdAt)}</td>
+          <td class="px-6 py-4 text-right font-black text-slate-900">${formatNumber(number(lot.itemCount || (lot.items || []).length))}</td>
+          <td class="px-6 py-4 text-right font-black text-blue-700">${formatNumber(number(lot.totalQty))}</td>
+          <td class="px-6 py-4">
+            <div class="font-bold text-slate-700">${escapeHtml(lot.supplierName || "-")}</div>
+            <div class="text-xs text-slate-500 mt-1">${escapeHtml(lot.note || "-")}</div>
+          </td>
+          <td class="px-6 py-4 text-sm font-bold text-slate-600">${escapeHtml(lot.actorName || lot.actor || "-")}</td>
+          <td class="px-6 py-4 text-right">
+            <button onclick="openLotDetail('${lot.id}')" class="px-4 py-2 rounded-2xl bg-blue-50 hover:bg-blue-100 text-blue-700 font-black border border-blue-100 transition-all"><i class="fa-solid fa-eye"></i> ดูรายละเอียด</button>
+          </td>
+        </tr>
+      `).join("");
+    };
+
+    window.openLotDetail = function(id) {
+      const lot = lotsData.find(l => l.id === id);
+      if (!lot) return;
+      currentLotDetailId = id;
+      document.getElementById("lot-detail-title").innerText = `ล็อต ${lot.lotCode || lot.id || "-"}`;
+      document.getElementById("lot-detail-subtitle").innerText = `${formatDate(lot.createdAt)} · ${formatNumber(number(lot.itemCount || (lot.items || []).length))} รายการ · รวม ${formatNumber(number(lot.totalQty))} หน่วย`;
+      document.getElementById("lot-detail-meta").innerHTML = `
+        ${lotInfoBox("รหัสล็อต", lot.lotCode || lot.id || "-", "fa-barcode")}
+        ${lotInfoBox("ผู้ขาย/แหล่งที่มา", lot.supplierName || "-", "fa-store")}
+        ${lotInfoBox("ผู้ทำรายการ", lot.actorName || lot.actor || "-", "fa-user")}
+        ${lotInfoBox("หมายเหตุ", lot.note || "-", "fa-note-sticky")}
+      `;
+      const items = Array.isArray(lot.items) ? lot.items : [];
+      document.getElementById("lot-detail-items").innerHTML = items.length === 0
+        ? `<tr><td colspan="6" class="px-5 py-10 text-center text-slate-500 font-bold">ล็อตนี้ไม่มีรายละเอียดสินค้า</td></tr>`
+        : items.map(item => `
+          <tr class="hover:bg-slate-50 transition-all">
+            <td class="px-5 py-4 font-mono text-sm text-slate-600">${escapeHtml(item.sku || "-")}</td>
+            <td class="px-5 py-4">
+              <div class="font-black text-slate-950">${escapeHtml(item.name || "-")}</div>
+              <div class="text-xs text-slate-500 mt-1">${escapeHtml(item.category || "")}</div>
+            </td>
+            <td class="px-5 py-4 text-right font-black text-emerald-700">+${formatNumber(number(item.quantity))} <span class="text-xs text-slate-500">${escapeHtml(item.unit || "")}</span></td>
+            <td class="px-5 py-4 text-right font-bold text-slate-500">${formatNumber(number(item.beforeQty))}</td>
+            <td class="px-5 py-4 text-right font-black text-slate-900">${formatNumber(number(item.afterQty))}</td>
+            <td class="px-5 py-4 text-sm font-bold text-slate-600">${escapeHtml(item.location || "-")}</td>
+          </tr>
+        `).join("");
+      document.getElementById("lot-detail-modal").classList.remove("hidden-view");
+    };
+
+    window.closeLotDetailModal = function() {
+      document.getElementById("lot-detail-modal").classList.add("hidden-view");
+      currentLotDetailId = null;
+    };
+
+    function lotInfoBox(label, value, icon) {
+      return `<div class="rounded-2xl bg-slate-50 border border-slate-200 p-4"><div class="text-xs text-slate-400 font-black mb-1"><i class="fa-solid ${icon}"></i> ${escapeHtml(label)}</div><div class="font-black text-slate-800 break-words">${escapeHtml(value)}</div></div>`;
+    }
 
     function stockBadge(item) {
       const qty = number(item.quantity);
@@ -968,7 +1195,7 @@
     // Navigation
     // =========================
     window.switchView = function(viewId) {
-      ["dashboard", "inventory", "receive", "history"].forEach(id => {
+      ["dashboard", "inventory", "receive", "lots", "history"].forEach(id => {
         document.getElementById(`view-${id}`).classList.toggle("hidden-view", id !== viewId);
         const nav = document.getElementById(`nav-${id}`);
         if (nav) {
@@ -984,6 +1211,7 @@
         dashboard: "ภาพรวมระบบ",
         inventory: "จัดการคลังสินค้า",
         receive: "รับเข้าสินค้าเป็นล็อต",
+        lots: "ตรวจสอบล็อตรับเข้า",
         history: "ประวัติรายการ"
       };
       document.getElementById("page-title").innerText = titles[viewId] || "FactoryStock";
@@ -995,6 +1223,7 @@
     // Item Modal
     // =========================
     window.openItemModal = function(id = null) {
+      updateSuggestionDatalists();
       const qtyInput = document.getElementById("item-quantity");
       const qtyHint = document.getElementById("item-qty-hint");
 
@@ -1035,6 +1264,7 @@
         document.getElementById("item-min").value = "10";
         document.getElementById("item-price").value = "0";
       }
+      checkSkuDuplicate();
       document.getElementById("item-modal").classList.remove("hidden-view");
     };
 
@@ -1057,8 +1287,20 @@
 
       const amountInput = document.getElementById("stock-amount");
       amountInput.value = "";
-      document.getElementById("stock-note").value = type === "in" ? "รับเข้าสต๊อก" : "เบิกออกสต๊อก";
-      document.getElementById("stock-actor-name").value = getActorName();
+
+      const noteInput = document.getElementById("stock-note");
+      const actorInput = document.getElementById("stock-actor-name");
+      const noteLabel = document.getElementById("stock-note-label");
+      const actorLabel = document.getElementById("stock-actor-label");
+      const noteHelper = document.getElementById("stock-note-helper");
+      const actorHelper = document.getElementById("stock-actor-helper");
+      noteHelper.classList.add("hidden-view");
+      actorHelper.classList.add("hidden-view");
+      noteInput.required = false;
+      actorInput.required = false;
+      noteInput.classList.remove("border-rose-300", "bg-rose-50");
+      actorInput.classList.remove("border-rose-300", "bg-rose-50");
+      actorInput.value = getActorName();
 
       const header = document.getElementById("stock-modal-header");
       const iconBg = document.getElementById("stock-icon-bg");
@@ -1071,6 +1313,11 @@
         amountInput.max = "";
         title.innerText = "รับเข้าสต๊อก";
         label.innerText = "จำนวนที่ต้องการรับเข้า *";
+        noteLabel.innerText = "หมายเหตุรับเข้า";
+        noteInput.placeholder = "เช่น ซื้อเข้าใหม่ / รับจากคลังกลาง / เติมสต๊อก";
+        noteInput.value = "รับเข้าสต๊อก";
+        actorLabel.innerText = "ผู้ทำรายการ / ผู้รับเข้า";
+        actorInput.placeholder = "ชื่อผู้ทำรายการ";
         header.className = "px-6 py-5 flex items-center gap-4 border-b flex-shrink-0 bg-emerald-50 border-emerald-100";
         iconBg.className = "w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center";
         icon.className = "fa-solid fa-arrow-down";
@@ -1080,6 +1327,17 @@
         amountInput.max = number(item.quantity);
         title.innerText = "เบิกออกสต๊อก";
         label.innerText = "จำนวนที่ต้องการเบิก *";
+        noteLabel.innerText = "เบิกไปใช้ทำอะไร *";
+        noteInput.placeholder = "เช่น ซ่อมเครื่องจักรไลน์ A / ใช้ในงานแพ็กกิ้ง / ส่งให้แผนกผลิต";
+        noteInput.value = "";
+        noteInput.required = true;
+        actorLabel.innerText = "ผู้เบิก / ผู้รับของ *";
+        actorInput.placeholder = "ชื่อผู้เบิก หรือแผนกที่รับของ";
+        actorInput.required = true;
+        noteHelper.innerHTML = '<i class="fa-solid fa-circle-info"></i> ช่องนี้จะถูกบันทึกในประวัติว่า “เบิกไปใช้ทำอะไร”';
+        actorHelper.innerHTML = '<i class="fa-solid fa-circle-info"></i> ช่องนี้จะถูกบันทึกในประวัติว่า “ใครเป็นคนเบิก”';
+        noteHelper.classList.remove("hidden-view");
+        actorHelper.classList.remove("hidden-view");
         header.className = "px-6 py-5 flex items-center gap-4 border-b flex-shrink-0 bg-rose-50 border-rose-100";
         iconBg.className = "w-12 h-12 rounded-2xl bg-rose-100 text-rose-700 flex items-center justify-center";
         icon.className = "fa-solid fa-arrow-up";
@@ -1179,12 +1437,32 @@
         aggregated.set(row.itemId, (aggregated.get(row.itemId) || 0) + number(row.quantity));
       });
 
+      const lotCodeInput = document.getElementById("lot-code");
+      const lotCode = cleanSku(lotCodeInput?.value || generateLotCodeValue());
+      if (lotCodeInput) lotCodeInput.value = lotCode;
+
+      const duplicateLot = lotsData.find(lot => cleanSku(lot.lotCode || lot.id || "") === lotCode);
+      if (duplicateLot) {
+        showToast("รหัสล็อตนี้มีอยู่ในระบบแล้ว กรุณาเปลี่ยนรหัส", "error");
+        lotCodeInput?.focus();
+        return;
+      }
+
+      const lotNote = cleanText(document.getElementById("lot-note")?.value) || "รับเข้าเป็นล็อต";
+      const lotSupplier = cleanText(document.getElementById("lot-supplier")?.value);
+      const actorName = cleanText(document.getElementById("lot-actor-name")?.value) || getActorName();
+      rememberActorName(actorName);
+
       const btn = document.getElementById("btn-submit-lot");
       btn.disabled = true;
       btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> กำลังบันทึก...`;
 
       try {
         const batch = writeBatch(db);
+        const lotRef = doc(paths.lots());
+        const lotDetailItems = [];
+        let totalQty = 0;
+
         for (const [itemId, addedQty] of aggregated.entries()) {
           const currentItem = inventoryData.find(i => i.id === itemId);
           if (!currentItem) continue;
@@ -1193,16 +1471,51 @@
           const afterQty = beforeQty + addedQty;
           const itemRef = doc(db, "artifacts", appId, "public", "data", "inventory", itemId);
           const logRef = doc(paths.transactions());
+          const detail = {
+            itemId,
+            sku: currentItem.sku || "",
+            name: currentItem.name || "",
+            category: currentItem.category || "",
+            unit: currentItem.unit || "",
+            location: currentItem.location || "",
+            supplierName: currentItem.supplierName || "",
+            quantity: addedQty,
+            beforeQty,
+            afterQty
+          };
+          lotDetailItems.push(detail);
+          totalQty += addedQty;
 
           batch.update(itemRef, { quantity: afterQty, updatedAt: serverTimestamp() });
-          batch.set(logRef, buildLog("in", currentItem, addedQty, beforeQty, afterQty, document.getElementById("lot-note")?.value.trim() || "รับเข้าเป็นล็อต", document.getElementById("lot-actor-name")?.value.trim() || getActorName()));
+          batch.set(logRef, buildLog("in", currentItem, addedQty, beforeQty, afterQty, lotNote, actorName, {
+            lotId: lotRef.id,
+            lotCode,
+            lotSupplier
+          }));
         }
 
+        batch.set(lotRef, {
+          lotCode,
+          type: "receive",
+          supplierName: lotSupplier,
+          note: lotNote,
+          actor: currentUser?.uid || "anonymous",
+          actorName,
+          itemCount: lotDetailItems.length,
+          totalQty,
+          items: lotDetailItems,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        });
+
         await batch.commit();
-        showToast(`รับเข้าสินค้า ${aggregated.size} รายการสำเร็จ`, "success");
+        showToast(`บันทึกรับเข้า ${lotCode} สำเร็จ (${lotDetailItems.length} รายการ)`, "success");
         lotItems = [{ itemId: "", quantity: "" }];
+        document.getElementById("lot-note").value = "รับเข้าเป็นล็อต";
+        document.getElementById("lot-supplier").value = "";
+        fillLotCode();
         renderLotTable();
-        switchView("inventory");
+        switchView("lots");
       } catch (error) {
         console.error("Batch error:", error);
         showToast("เกิดข้อผิดพลาดในการบันทึกแบบล็อต", "error");
@@ -1211,6 +1524,18 @@
         btn.innerHTML = `<i class="fa-solid fa-check"></i> บันทึกรับเข้าทั้งล็อต`;
       }
     };
+
+    window.fillLotCode = function() {
+      const input = document.getElementById("lot-code");
+      if (input) input.value = generateLotCodeValue();
+    };
+
+    function generateLotCodeValue() {
+      const d = new Date();
+      const pad = n => String(n).padStart(2, "0");
+      return `LOT-${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}`;
+    };
+
 
     // =========================
     // CRUD
@@ -1221,18 +1546,40 @@
 
       const id = document.getElementById("item-id").value;
       const data = {
-        sku: document.getElementById("item-sku").value.trim(),
-        name: document.getElementById("item-name").value.trim(),
-        category: document.getElementById("item-category").value.trim(),
-        unit: document.getElementById("item-unit").value.trim() || "ชิ้น",
-        location: document.getElementById("item-location").value.trim(),
-        supplierName: document.getElementById("item-supplier").value.trim(),
-        supplierPhone: document.getElementById("item-supplier-phone").value.trim(),
+        sku: cleanSku(document.getElementById("item-sku").value),
+        name: cleanText(document.getElementById("item-name").value),
+        category: cleanText(document.getElementById("item-category").value),
+        unit: cleanText(document.getElementById("item-unit").value) || "ชิ้น",
+        location: cleanText(document.getElementById("item-location").value),
+        supplierName: cleanText(document.getElementById("item-supplier").value),
+        supplierPhone: cleanText(document.getElementById("item-supplier-phone").value),
         lastPurchaseDate: document.getElementById("item-last-purchase").value,
         minLevel: number(document.getElementById("item-min").value),
         price: number(document.getElementById("item-price").value),
         updatedAt: serverTimestamp()
       };
+
+      if (!data.sku) {
+        showToast("กรุณากรอกรหัสสินค้า SKU", "error");
+        document.getElementById("item-sku").focus();
+        return;
+      }
+
+      const duplicateSku = findDuplicateSku(data.sku, id);
+      if (duplicateSku) {
+        showToast(`SKU ${data.sku} มีอยู่แล้วในสินค้า “${duplicateSku.name || duplicateSku.sku}”`, "error");
+        document.getElementById("item-sku").focus();
+        checkSkuDuplicate();
+        return;
+      }
+
+      document.getElementById("item-sku").value = data.sku;
+      document.getElementById("item-name").value = data.name;
+      document.getElementById("item-category").value = data.category;
+      document.getElementById("item-unit").value = data.unit;
+      document.getElementById("item-location").value = data.location;
+      document.getElementById("item-supplier").value = data.supplierName;
+      document.getElementById("item-supplier-phone").value = data.supplierPhone;
 
       const submitBtn = e.target.querySelector('button[type="submit"]');
       const original = submitBtn.innerHTML;
@@ -1329,6 +1676,28 @@
         return;
       }
 
+      const noteInput = document.getElementById("stock-note");
+      const actorInput = document.getElementById("stock-actor-name");
+      const noteRaw = cleanText(noteInput?.value);
+      const actorRaw = cleanText(actorInput?.value);
+
+      noteInput?.classList.remove("border-rose-300", "bg-rose-50");
+      actorInput?.classList.remove("border-rose-300", "bg-rose-50");
+
+      if (type === "out" && !actorRaw) {
+        actorInput?.classList.add("border-rose-300", "bg-rose-50");
+        actorInput?.focus();
+        showToast("กรุณาระบุผู้เบิก / ผู้รับของ", "error");
+        return;
+      }
+
+      if (type === "out" && !noteRaw) {
+        noteInput?.classList.add("border-rose-300", "bg-rose-50");
+        noteInput?.focus();
+        showToast("กรุณาระบุว่าเบิกไปใช้ทำอะไร", "error");
+        return;
+      }
+
       const afterQty = type === "in" ? beforeQty + amount : beforeQty - amount;
       const submitBtn = document.getElementById("stock-submit-btn");
       const original = submitBtn.innerHTML;
@@ -1340,11 +1709,12 @@
         const itemRef = doc(db, "artifacts", appId, "public", "data", "inventory", id);
         const logRef = doc(paths.transactions());
 
-        const note = document.getElementById("stock-note")?.value.trim() || (type === "in" ? "รับเข้าสต๊อก" : "เบิกออกสต๊อก");
-        const actorName = document.getElementById("stock-actor-name")?.value.trim() || getActorName();
+        const note = noteRaw || (type === "in" ? "รับเข้าสต๊อก" : "เบิกออกสต๊อก");
+        const actorName = actorRaw || getActorName();
         rememberActorName(actorName);
+        const logExtra = type === "out" ? { withdrawerName: actorName, requesterName: actorName, purpose: note } : {};
         batch.update(itemRef, { quantity: afterQty, updatedAt: serverTimestamp() });
-        batch.set(logRef, buildLog(type, item, amount, beforeQty, afterQty, note, actorName));
+        batch.set(logRef, buildLog(type, item, amount, beforeQty, afterQty, note, actorName, logExtra));
         await batch.commit();
 
         showToast(`ทำรายการ${type === "in" ? "รับเข้า" : "เบิกออก"}สำเร็จ`, "success");
@@ -1358,7 +1728,7 @@
       }
     };
 
-    function buildLog(type, item, quantity, beforeQty, afterQty, note, actorName = getActorName()) {
+    function buildLog(type, item, quantity, beforeQty, afterQty, note, actorName = getActorName(), extra = {}) {
       return {
         type,
         itemId: item.id,
@@ -1373,6 +1743,7 @@
         note,
         actor: currentUser?.uid || "anonymous",
         actorName,
+        ...extra,
         createdAt: serverTimestamp()
       };
     }
@@ -1388,6 +1759,22 @@
       });
     }
 
+
+    function getFilteredLots() {
+      const queryText = (document.getElementById("lot-search-input")?.value || "").toLowerCase().trim();
+      const fromDate = document.getElementById("lot-from-date")?.value || "";
+      const toDate = document.getElementById("lot-to-date")?.value || "";
+      return lotsData.filter(lot => {
+        const itemsText = Array.isArray(lot.items) ? lot.items.map(i => `${i.sku || ""} ${i.name || ""} ${i.category || ""} ${i.location || ""}`).join(" ") : "";
+        const text = `${lot.lotCode || ""} ${lot.id || ""} ${lot.supplierName || ""} ${lot.note || ""} ${lot.actorName || ""} ${lot.actor || ""} ${itemsText}`.toLowerCase();
+        if (!text.includes(queryText)) return false;
+        const date = toDateObject(lot.createdAt);
+        if (fromDate && (!date || date < new Date(`${fromDate}T00:00:00`))) return false;
+        if (toDate && (!date || date > new Date(`${toDate}T23:59:59`))) return false;
+        return true;
+      });
+    }
+
     function getFilteredHistory() {
       const queryText = (document.getElementById("history-search-input")?.value || "").toLowerCase().trim();
       const typeFilter = document.getElementById("history-type-filter")?.value || "";
@@ -1396,7 +1783,7 @@
 
       return historyData.filter(item => {
         if (typeFilter && item.type !== typeFilter) return false;
-        const text = `${item.type || ""} ${historyTypeText(item.type)} ${item.sku || ""} ${item.name || ""} ${item.note || ""} ${item.actorName || ""} ${item.actor || ""} ${item.location || ""} ${item.supplierName || ""}`.toLowerCase();
+        const text = `${item.type || ""} ${historyTypeText(item.type)} ${item.sku || ""} ${item.name || ""} ${item.note || ""} ${item.purpose || ""} ${item.actorName || ""} ${item.withdrawerName || ""} ${item.requesterName || ""} ${item.actor || ""} ${item.location || ""} ${item.supplierName || ""} ${item.lotCode || ""} ${item.lotSupplier || ""}`.toLowerCase();
         if (!text.includes(queryText)) return false;
         const date = toDateObject(item.createdAt);
         if (fromDate && (!date || date < new Date(`${fromDate}T00:00:00`))) return false;
@@ -1434,10 +1821,68 @@
         item.unit || "",
         number(item.beforeQty),
         number(item.afterQty),
-        item.note || "",
-        item.actorName || item.actor || ""
+        item.lotCode || "",
+        historyNoteText(item),
+        historyPersonText(item)
       ]);
-      downloadExcel("factory-stock-history.xls", ["วันที่/เวลา", "ประเภท", "SKU", "ชื่อสินค้า", "จำนวน", "หน่วย", "ก่อน", "หลัง", "หมายเหตุ", "ผู้ทำรายการ"], rows, "ประวัติรับเข้า-เบิกออก");
+      downloadExcel("factory-stock-history.xls", ["วันที่/เวลา", "ประเภท", "SKU", "ชื่อสินค้า", "จำนวน", "หน่วย", "ก่อน", "หลัง", "รหัสล็อต", "เบิกไปใช้/หมายเหตุ", "ผู้เบิก/ผู้ทำรายการ"], rows, "ประวัติรับเข้า-เบิกออก");
+    };
+
+
+    window.exportLots = function() {
+      const rows = [];
+      getFilteredLots().forEach(lot => {
+        const items = Array.isArray(lot.items) ? lot.items : [];
+        if (items.length === 0) {
+          rows.push([formatDate(lot.createdAt), lot.lotCode || lot.id || "", lot.supplierName || "", "", "", "", "", "", "", lot.note || "", lot.actorName || lot.actor || ""]);
+        } else {
+          items.forEach(item => rows.push([
+            formatDate(lot.createdAt),
+            lot.lotCode || lot.id || "",
+            lot.supplierName || "",
+            item.sku || "",
+            item.name || "",
+            number(item.quantity),
+            item.unit || "",
+            number(item.beforeQty),
+            number(item.afterQty),
+            lot.note || "",
+            lot.actorName || lot.actor || ""
+          ]));
+        }
+      });
+      downloadExcel("factory-stock-lots.xls", ["วันที่รับเข้า", "รหัสล็อต", "ผู้ขาย/แหล่งที่มา", "SKU", "สินค้า", "จำนวนรับเข้า", "หน่วย", "ก่อนรับ", "หลังรับ", "หมายเหตุล็อต", "ผู้ทำรายการ"], rows, "รายงานล็อตรับเข้า");
+    };
+
+    window.printLotsReport = function() {
+      const rows = getFilteredLots();
+      const table = buildHtmlTable(["วันที่", "รหัสล็อต", "จำนวนรายการ", "จำนวนรวม", "ผู้ขาย/แหล่งที่มา", "หมายเหตุ", "ผู้ทำ"], rows.map(lot => [
+        formatDate(lot.createdAt),
+        lot.lotCode || lot.id || "-",
+        formatNumber(number(lot.itemCount || (lot.items || []).length)),
+        formatNumber(number(lot.totalQty)),
+        lot.supplierName || "-",
+        lot.note || "-",
+        lot.actorName || lot.actor || "-"
+      ]));
+      openPrintWindow("รายงานล็อตรับเข้า", `<p>จำนวนล็อต: <b>${formatNumber(rows.length)}</b></p>${table}`);
+    };
+
+    window.printCurrentLotDetail = function() {
+      const lot = lotsData.find(l => l.id === currentLotDetailId);
+      if (!lot) return;
+      const items = Array.isArray(lot.items) ? lot.items : [];
+      const table = buildHtmlTable(["SKU", "สินค้า", "จำนวนรับ", "หน่วย", "ก่อนรับ", "หลังรับ", "ที่เก็บ"], items.map(item => [
+        item.sku || "-",
+        item.name || "-",
+        formatNumber(number(item.quantity)),
+        item.unit || "",
+        formatNumber(number(item.beforeQty)),
+        formatNumber(number(item.afterQty)),
+        item.location || "-"
+      ]));
+      const meta = `<p>รหัสล็อต: <b>${escapeHtml(lot.lotCode || lot.id || "-")}</b> | วันที่: <b>${formatDate(lot.createdAt)}</b> | ผู้ขาย/แหล่งที่มา: <b>${escapeHtml(lot.supplierName || "-")}</b> | ผู้ทำรายการ: <b>${escapeHtml(lot.actorName || lot.actor || "-")}</b></p><p>หมายเหตุ: ${escapeHtml(lot.note || "-")}</p>`;
+      openPrintWindow(`รายละเอียดล็อต ${lot.lotCode || lot.id || ""}`, `${meta}${table}`);
     };
 
     window.printInventoryReport = function() {
@@ -1458,7 +1903,7 @@
 
     window.printHistoryReport = function() {
       const rows = getFilteredHistory();
-      const table = buildHtmlTable(["วันที่/เวลา", "ประเภท", "SKU", "สินค้า", "จำนวน", "ก่อน", "หลัง", "หมายเหตุ", "ผู้ทำ"], rows.map(item => [
+      const table = buildHtmlTable(["วันที่/เวลา", "ประเภท", "SKU", "สินค้า", "จำนวน", "ก่อน", "หลัง", "รหัสล็อต", "เบิกไปใช้/หมายเหตุ", "ผู้เบิก/ผู้ทำ"], rows.map(item => [
         formatDate(item.createdAt),
         historyTypeText(item.type),
         item.sku || "-",
@@ -1466,8 +1911,9 @@
         `${item.type === "out" ? "-" : "+"}${formatNumber(item.quantity)} ${item.unit || ""}`,
         formatNumber(item.beforeQty),
         formatNumber(item.afterQty),
-        item.note || "-",
-        item.actorName || item.actor || "-"
+        item.lotCode || "-",
+        historyNoteText(item),
+        historyPersonText(item)
       ]));
       openPrintWindow("รายงานประวัติรายการ", `<p>จำนวนรายการ: <b>${formatNumber(rows.length)}</b></p>${table}`);
     };
@@ -1526,12 +1972,74 @@
       return date.toLocaleDateString("th-TH", { day: "2-digit", month: "short", year: "numeric" });
     }
 
-    function getActorName() {
+    
+    function cleanText(value) {
+      return String(value || "").replace(/\s+/g, " ").trim();
+    }
+
+    function cleanSku(value) {
+      return cleanText(value).toUpperCase();
+    }
+
+    function findDuplicateSku(sku, currentId = "") {
+      const normalized = cleanSku(sku);
+      if (!normalized) return null;
+      return inventoryData.find(item => cleanSku(item.sku || "") === normalized && item.id !== currentId) || null;
+    }
+
+    window.checkSkuDuplicate = function() {
+      const skuInput = document.getElementById("item-sku");
+      const hint = document.getElementById("sku-duplicate-hint");
+      if (!skuInput || !hint) return false;
+      const currentId = document.getElementById("item-id")?.value || "";
+      const duplicate = findDuplicateSku(skuInput.value, currentId);
+      hint.classList.toggle("hidden-view", !duplicate);
+      skuInput.classList.toggle("border-rose-300", !!duplicate);
+      skuInput.classList.toggle("focus:border-rose-500", !!duplicate);
+      return !!duplicate;
+    };
+
+    function updateSuggestionDatalists() {
+      setDatalistOptions("category-suggestions", inventoryData.map(item => item.category));
+      setDatalistOptions("unit-suggestions", [
+        "ชิ้น", "กล่อง", "แพ็ก", "ชุด", "ม้วน", "เส้น", "แผ่น", "ถุง", "คู่", "รีม", "ขวด", "แกลลอน", "กิโลกรัม", "เมตร",
+        ...inventoryData.map(item => item.unit)
+      ]);
+      setDatalistOptions("location-suggestions", inventoryData.map(item => item.location));
+      setDatalistOptions("supplier-suggestions", [
+        ...inventoryData.map(item => item.supplierName),
+        ...lotsData.map(lot => lot.supplierName)
+      ]);
+      setDatalistOptions("actor-suggestions", [
+        getActorName(),
+        ...historyData.map(item => item.actorName || item.actor),
+        ...lotsData.map(lot => lot.actorName || lot.actor)
+      ]);
+    }
+
+    function setDatalistOptions(id, values) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const seen = new Set();
+      const unique = [];
+      values.forEach(value => {
+        const text = cleanText(value);
+        if (!text) return;
+        const key = text.toLowerCase();
+        if (seen.has(key)) return;
+        seen.add(key);
+        unique.push(text);
+      });
+      unique.sort((a, b) => a.localeCompare(b, "th"));
+      el.innerHTML = unique.slice(0, 80).map(value => `<option value="${escapeHtml(value)}"></option>`).join("");
+    }
+
+function getActorName() {
       return (localStorage.getItem("factoryStockActorName") || "ผู้ใช้งาน").trim() || "ผู้ใช้งาน";
     }
 
     window.rememberActorName = function(value) {
-      const name = String(value || "").trim();
+      const name = cleanText(value);
       if (name) localStorage.setItem("factoryStockActorName", name);
       syncActorInputs();
     };
@@ -1623,6 +2131,31 @@
         .replaceAll("'", "&#039;");
     }
 
+
+    function historyPersonText(item) {
+      if (!item) return "-";
+      if (item.type === "out") {
+        return item.withdrawerName || item.requesterName || item.actorName || item.actor || "-";
+      }
+      return item.actorName || item.actor || "-";
+    }
+
+    function historyNoteText(item) {
+      if (!item) return "-";
+      if (item.type === "out") {
+        return item.purpose || item.note || "-";
+      }
+      return item.note || "-";
+    }
+
+    function historyPersonLabel(item) {
+      return item?.type === "out" ? "ผู้เบิก" : "ผู้ทำรายการ";
+    }
+
+    function historyNoteLabel(item) {
+      return item?.type === "out" ? "เบิกไปใช้" : "หมายเหตุ";
+    }
+
     function historyTypeText(type) {
       const map = {
         in: "รับเข้า",
@@ -1652,6 +2185,8 @@
       };
       return map[type] || "bg-slate-100 text-slate-700";
     }
+
+    setTimeout(() => fillLotCode(), 300);
 
     function historyPillClass(type) {
       const map = {
