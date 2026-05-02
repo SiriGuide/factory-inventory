@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>FactoryStock - ระบบจัดการสต๊อกโรงงาน</title>
+  <title>FactoryStock - ระบบจัดการสต๊อกโรงงาน (No Auth Test)</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <style>
@@ -407,8 +407,7 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-    import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-    import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager, collection, onSnapshot, doc, addDoc, updateDoc, deleteDoc, serverTimestamp, writeBatch, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    import { getFirestore, collection, onSnapshot, doc, addDoc, updateDoc, deleteDoc, serverTimestamp, writeBatch, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
     // =========================
     // ตั้งค่าระบบ
@@ -427,16 +426,16 @@
     const appId = "factory-stock-6f8ba"; // คงค่าเดิมจากไฟล์เก่า เพื่อไม่ให้ข้อมูลเดิมหาย
 
     const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db = initializeFirestore(app, {
-      localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
-    });
+    // เวอร์ชันทดสอบแบบไม่ใช้ Firebase Auth: ใช้ได้เมื่อ Firestore Rules ตั้งเป็น allow read, write: if true;
+    // ใช้ getFirestore แบบปกติ เพื่อลดปัญหาค้างจากระบบ cache ในบาง browser / บางเครื่อง
+    const db = getFirestore(app);
 
     let inventoryData = [];
     let historyData = [];
-    let currentUser = null;
+    let currentUser = { uid: "local-passcode-user" };
     let lotItems = [{ itemId: "", quantity: "" }];
     let appStarted = false;
+    let loadTimer = null;
 
     const paths = {
       inventory: () => collection(db, "artifacts", appId, "public", "data", "inventory"),
@@ -476,27 +475,79 @@
       setTimeout(() => document.getElementById("login-passcode")?.focus(), 100);
     }
 
+    function hideLoadingOverlay() {
+      const overlay = document.getElementById("loading-overlay");
+      if (overlay) overlay.classList.add("hidden-view");
+      if (loadTimer) {
+        clearTimeout(loadTimer);
+        loadTimer = null;
+      }
+    }
+
+    function showLoadingError(title, detail) {
+      if (loadTimer) {
+        clearTimeout(loadTimer);
+        loadTimer = null;
+      }
+      const overlay = document.getElementById("loading-overlay");
+      if (!overlay) return;
+      overlay.classList.remove("hidden-view");
+      overlay.innerHTML = `
+        <div class="bg-white rounded-3xl soft-card border border-rose-100 p-7 sm:p-8 w-[92%] max-w-xl text-left">
+          <div class="flex items-start gap-4">
+            <div class="w-12 h-12 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center flex-shrink-0">
+              <i class="fa-solid fa-triangle-exclamation text-xl"></i>
+            </div>
+            <div class="min-w-0">
+              <h3 class="text-xl font-black text-slate-950">${escapeHtml(title)}</h3>
+              <p class="text-sm text-slate-600 mt-2 leading-6">${escapeHtml(detail || "ไม่ทราบสาเหตุ")}</p>
+              <div class="mt-4 rounded-2xl bg-slate-50 border border-slate-200 p-4 text-sm text-slate-700 leading-6">
+                <div class="font-black mb-1">จุดที่ควรเช็กใน Firebase</div>
+                <div>1) Firestore Database &gt; Rules ต้องเป็น allow read, write: if true; สำหรับไฟล์ทดสอบนี้</div>
+                <div>2) กด Publish Rules แล้ว</div>
+                <div>3) เช็กว่า firebaseConfig เป็นโปรเจกต์ factory-stock-655fa ถูกต้อง</div>
+              </div>
+              <div class="mt-5 flex flex-col sm:flex-row gap-3">
+                <button onclick="location.reload()" class="px-5 py-3 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-black transition-all">
+                  ลองโหลดใหม่
+                </button>
+                <button onclick="document.getElementById('loading-overlay').classList.add('hidden-view')" class="px-5 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-black transition-all">
+                  ปิดกล่องนี้ก่อน
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function startLoadWatchdog() {
+      if (loadTimer) clearTimeout(loadTimer);
+      loadTimer = setTimeout(() => {
+        const overlay = document.getElementById("loading-overlay");
+        if (overlay && !overlay.classList.contains("hidden-view")) {
+          setDbStatus(false, "โหลดนานผิดปกติ");
+          showLoadingError(
+            "โหลดข้อมูลนานผิดปกติ",
+            "ระบบเชื่อมต่อหน้าเว็บได้แล้ว แต่ยังอ่านข้อมูลจาก Firebase ไม่สำเร็จ อาจเกิดจาก Firestore Rules ยังไม่ได้ Publish, โปรเจกต์ Firebase ไม่ตรง, หรืออินเทอร์เน็ต/เบราว์เซอร์บล็อก Firebase CDN"
+          );
+        }
+      }, 9000);
+    }
+
     // =========================
     // Firebase Init
     // =========================
     async function initApp() {
       appStarted = true;
-      try {
-        await signInAnonymously(auth);
-      } catch (error) {
-        console.error("Auth error:", error);
-        showToast("เชื่อมต่อฐานข้อมูลล้มเหลว กรุณาตรวจสอบ Firebase Auth", "error");
-        setDbStatus(false, "เชื่อมต่อล้มเหลว");
-      }
+      startLoadWatchdog();
 
-      onAuthStateChanged(auth, (user) => {
-        currentUser = user;
-        if (user) {
-          setDbStatus(true, "ออนไลน์");
-          fetchInventory();
-          fetchHistory();
-        }
-      });
+      // เวอร์ชันทดสอบ: ไม่ใช้ Firebase Authentication
+      // เหมาะสำหรับตอนที่ Firestore Rules เปิดเป็น allow read, write: if true;
+      currentUser = { uid: "local-passcode-user" };
+      setDbStatus(true, "ออนไลน์");
+      fetchInventory();
+      fetchHistory();
     }
 
     function setDbStatus(online, text) {
@@ -517,13 +568,16 @@
       onSnapshot(paths.inventory(), (snapshot) => {
         inventoryData = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
         inventoryData.sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "th"));
-        document.getElementById("loading-overlay").classList.add("hidden-view");
+        hideLoadingOverlay();
         renderDashboard();
         renderInventoryTable();
         renderLotTable();
       }, (error) => {
         console.error("Inventory load error:", error);
         showToast("ไม่สามารถโหลดข้อมูลสินค้าได้", "error");
+        setDbStatus(false, "อ่านข้อมูลไม่ได้");
+        const detail = `${error.code || "firestore/error"}: ${error.message || "Firestore ไม่ตอบสนอง"}`;
+        showLoadingError("โหลดข้อมูลสินค้าไม่สำเร็จ", detail);
       });
     }
 
