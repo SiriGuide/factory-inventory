@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>FactoryStock - ระบบจัดการสต๊อกโรงงาน</title>
+  <title>FactoryStock Pro v11 - ระบบจัดการสต๊อกโรงงาน</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <style>
@@ -119,6 +119,9 @@
         <button onclick="switchView('yearend')" id="nav-yearend" class="nav-idle w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-left font-bold">
           <i class="fa-solid fa-shield-halved w-5"></i> สำรอง/ปิดปี
         </button>
+        <button onclick="switchView('settings')" id="nav-settings" class="nav-idle w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-left font-bold">
+          <i class="fa-solid fa-gear w-5"></i> ตั้งค่าระบบ
+        </button>
       </nav>
 
       <div class="p-4 border-t border-white/10 space-y-3">
@@ -154,6 +157,7 @@
               <option value="lots">ตรวจสอบล็อต</option>
               <option value="history">ประวัติรายการ</option>
               <option value="yearend">สำรอง/ปิดปี</option>
+              <option value="settings">ตั้งค่าระบบ</option>
             </select>
           </div>
         </div>
@@ -179,7 +183,11 @@
                   <h3 class="text-lg font-black text-slate-900 flex items-center gap-2"><i class="fa-solid fa-triangle-exclamation text-amber-500"></i> รายการที่ควรสั่งซื้อ</h3>
                   <p class="text-sm text-slate-500 mt-1">แสดงสินค้าที่หมดหรือใกล้ต่ำกว่าจุดสั่งซื้อ</p>
                 </div>
-                <button onclick="switchView('inventory')" class="hidden sm:inline-flex px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-sm">ดูทั้งหมด</button>
+                <div class="hidden sm:flex gap-2">
+                  <button onclick="exportReorderList()" class="px-4 py-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-100 font-black text-sm"><i class="fa-solid fa-file-excel"></i> Export รายการซื้อ</button>
+                  <button onclick="printReorderList()" class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-black text-sm"><i class="fa-solid fa-print"></i> พิมพ์</button>
+                  <button onclick="switchView('inventory')" class="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-black text-sm">ดูทั้งหมด</button>
+                </div>
               </div>
               <div class="overflow-x-auto">
                 <table class="w-full text-left min-w-[620px]">
@@ -226,6 +234,12 @@
               <button onclick="printInventoryReport()" class="px-5 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-black transition-all">
                 <i class="fa-solid fa-print"></i> พิมพ์รายงาน
               </button>
+              <button onclick="exportReorderList()" class="px-5 py-3 rounded-2xl bg-amber-50 hover:bg-amber-100 text-amber-700 font-black border border-amber-100 transition-all">
+                <i class="fa-solid fa-cart-plus"></i> รายการต้องซื้อ
+              </button>
+              <label class="px-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-slate-700 font-black flex items-center gap-2 cursor-pointer whitespace-nowrap">
+                <input type="checkbox" id="show-archived-toggle" onchange="renderInventoryTable()" class="w-4 h-4 accent-blue-600" /> ปิดใช้งาน
+              </label>
               <button onclick="openItemModal()" class="px-5 py-3 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-black shadow-lg shadow-blue-500/20 transition-all">
                 <i class="fa-solid fa-plus"></i> เพิ่มสินค้าใหม่
               </button>
@@ -376,6 +390,9 @@
                 <option value="in">รับเข้า</option>
                 <option value="out">เบิกออก</option>
                 <option value="create">สร้างสินค้า</option>
+                <option value="adjust">ปรับยอด/ตรวจนับ</option>
+                <option value="archive">ปิดใช้งานสินค้า</option>
+                <option value="restore">กู้คืนสินค้า</option>
                 <option value="delete">ลบสินค้า</option>
               </select>
               <input type="date" id="history-from-date" onchange="renderHistoryTable()" class="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 font-bold text-slate-700" title="ตั้งแต่วันที่" />
@@ -424,6 +441,20 @@
                 <i class="fa-solid fa-download"></i> สำรองข้อมูลทั้งหมด
               </button>
             </div>
+          </div>
+
+          <div class="bg-white rounded-3xl soft-card border border-blue-100 p-5 sm:p-6">
+            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+              <div>
+                <h4 class="text-lg font-black text-slate-950 flex items-center gap-2"><i class="fa-solid fa-upload text-blue-600"></i> นำเข้าข้อมูลสำรองกลับคืน</h4>
+                <p class="text-sm text-slate-500 mt-2 leading-6">เลือกไฟล์ JSON ที่เคยสำรองไว้ ระบบจะถามยืนยันก่อนล้างข้อมูลปัจจุบัน แล้วนำข้อมูลในไฟล์กลับเข้า Firebase</p>
+              </div>
+              <div class="flex flex-col sm:flex-row gap-3 lg:min-w-[520px]">
+                <input type="file" id="restore-file-input" accept=".json,application/json" class="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-slate-50 font-bold text-slate-700" />
+                <button onclick="restoreBackupFromFile()" id="btn-restore-backup" class="px-5 py-3 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-black transition-all whitespace-nowrap"><i class="fa-solid fa-rotate-left"></i> Restore</button>
+              </div>
+            </div>
+            <div class="mt-4 rounded-2xl bg-amber-50 border border-amber-100 p-4 text-sm text-amber-800 leading-6"><b>เตือน:</b> การ Restore จะเขียนข้อมูลจากไฟล์สำรองกลับเข้า collections เดิม ได้แก่ สินค้า ประวัติ และล็อต ควรสำรองข้อมูลปัจจุบันก่อนเสมอ</div>
           </div>
 
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -478,11 +509,85 @@
           </div>
         </div>
       </section>
+
+
+      <!-- Settings / Import -->
+      <section id="view-settings" class="hidden-view flex-1 p-4 sm:p-6 lg:p-8">
+        <div class="max-w-7xl mx-auto space-y-5">
+          <div class="bg-white rounded-3xl soft-card border border-slate-200 p-5 sm:p-6">
+            <div class="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-5">
+              <div>
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-100 text-xs font-black mb-3">
+                  <i class="fa-solid fa-gear"></i> System Settings
+                </div>
+                <h3 class="text-2xl font-black text-slate-950">ตั้งค่าระบบ</h3>
+                <p class="text-sm text-slate-500 mt-2 leading-6 max-w-3xl">ปรับชื่อระบบ รหัสเข้าเว็บ ข้อความหัวรายงาน และนำเข้าข้อมูลจาก CSV ได้จากหน้านี้ โดยไม่ต้องกลับไปแก้โค้ด HTML</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 xl:grid-cols-2 gap-5">
+            <form onsubmit="saveSettings(event)" class="bg-white rounded-3xl soft-card border border-slate-200 p-5 sm:p-6 space-y-4">
+              <h4 class="text-lg font-black text-slate-950 flex items-center gap-2"><i class="fa-solid fa-sliders text-blue-600"></i> ข้อมูลระบบและรายงาน</h4>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label class="text-sm font-black text-slate-700">ชื่อระบบ</label>
+                  <input id="settings-system-name" type="text" class="mt-2 w-full p-3 rounded-2xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none font-semibold" />
+                </div>
+                <div>
+                  <label class="text-sm font-black text-slate-700">ชื่อหน่วยงาน / โรงงาน</label>
+                  <input id="settings-organization" type="text" class="mt-2 w-full p-3 rounded-2xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none font-semibold" />
+                </div>
+                <div>
+                  <label class="text-sm font-black text-slate-700">ปีการใช้งานปัจจุบัน</label>
+                  <input id="settings-current-year" type="text" placeholder="เช่น 2569" class="mt-2 w-full p-3 rounded-2xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none font-semibold" />
+                </div>
+                <div>
+                  <label class="text-sm font-black text-slate-700">รหัสเข้าเว็บ</label>
+                  <input id="settings-access-code" type="text" class="mt-2 w-full p-3 rounded-2xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none font-semibold" />
+                  <p class="mt-1 text-xs text-amber-600 font-bold">หลังเปลี่ยนรหัส ให้กดออกจากระบบแล้วเข้าใหม่ด้วยรหัสใหม่</p>
+                </div>
+              </div>
+              <div>
+                <label class="text-sm font-black text-slate-700">ข้อความหัวรายงาน</label>
+                <input id="settings-report-header" type="text" class="mt-2 w-full p-3 rounded-2xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none font-semibold" />
+              </div>
+              <div>
+                <label class="text-sm font-black text-slate-700">หน่วยนับที่ใช้บ่อย</label>
+                <textarea id="settings-default-units" rows="3" placeholder="คั่นด้วยเครื่องหมายจุลภาค เช่น ชิ้น, กล่อง, ม้วน" class="mt-2 w-full p-3 rounded-2xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none font-semibold"></textarea>
+              </div>
+              <div class="flex flex-col sm:flex-row justify-end gap-3 pt-2">
+                <button type="button" onclick="renderSettingsForm()" class="px-5 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-black transition-all">ยกเลิก</button>
+                <button id="btn-save-settings" type="submit" class="px-6 py-3 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-black shadow-lg shadow-blue-500/20 transition-all"><i class="fa-solid fa-floppy-disk"></i> บันทึกตั้งค่า</button>
+              </div>
+            </form>
+
+            <div class="bg-white rounded-3xl soft-card border border-emerald-100 p-5 sm:p-6 space-y-4">
+              <h4 class="text-lg font-black text-slate-950 flex items-center gap-2"><i class="fa-solid fa-file-import text-emerald-600"></i> นำเข้าข้อมูลสินค้า Excel / CSV</h4>
+              <p class="text-sm text-slate-500 leading-6">ให้บันทึกไฟล์ Excel เป็น <b>CSV UTF-8</b> แล้วนำเข้า ระบบจะใช้ SKU เช็กซ้ำให้</p>
+              <input type="file" id="csv-import-file" accept=".csv,text/csv" class="w-full px-4 py-3 rounded-2xl border border-slate-200 bg-slate-50 font-bold text-slate-700" />
+              <label class="flex items-center gap-2 text-sm font-black text-slate-700 rounded-2xl bg-slate-50 border border-slate-200 p-3 cursor-pointer">
+                <input type="checkbox" id="csv-update-existing" class="w-4 h-4 accent-emerald-600" /> อัปเดตสินค้าที่ SKU ซ้ำด้วย
+              </label>
+              <div class="rounded-2xl bg-slate-50 border border-slate-200 p-4 text-xs text-slate-600 leading-6">
+                <div class="font-black text-slate-800 mb-1">หัวคอลัมน์ที่รองรับ</div>
+                <div>SKU, ชื่อสินค้า, หมวดหมู่, หน่วยนับ, จำนวน, จุดสั่งซื้อ, ราคา, ตำแหน่งจัดเก็บ, ซัพพลายเออร์, ติดต่อ, วันที่ซื้อล่าสุด</div>
+              </div>
+              <div class="flex flex-col sm:flex-row gap-3">
+                <button onclick="downloadCsvTemplate()" class="flex-1 px-5 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-black transition-all"><i class="fa-solid fa-download"></i> โหลดไฟล์ตัวอย่าง</button>
+                <button onclick="importCsvItems()" id="btn-import-csv" class="flex-1 px-5 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-black transition-all shadow-lg shadow-emerald-500/20"><i class="fa-solid fa-file-import"></i> นำเข้า CSV</button>
+              </div>
+              <div id="csv-import-result" class="hidden-view rounded-2xl bg-emerald-50 border border-emerald-100 p-4 text-sm text-emerald-800 font-bold"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
     </main>
 
     <!-- Mobile Bottom Navigation -->
     <nav class="mobile-bottom-nav lg:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-xl border-t border-slate-200 px-3 pt-2 pb-[calc(env(safe-area-inset-bottom)+.5rem)]">
-      <div class="grid grid-cols-6 gap-1 max-w-xl mx-auto">
+      <div class="grid grid-cols-7 gap-1 max-w-2xl mx-auto">
         <button onclick="switchView('dashboard')" id="bottom-nav-dashboard" class="mobile-tab-active flex flex-col items-center justify-center gap-1 rounded-2xl py-2 text-[10px] sm:text-[11px] font-black transition-all">
           <i class="fa-solid fa-chart-pie text-lg"></i><span>ภาพรวม</span>
         </button>
@@ -498,8 +603,11 @@
         <button onclick="switchView('history')" id="bottom-nav-history" class="mobile-tab-idle flex flex-col items-center justify-center gap-1 rounded-2xl py-2 text-[10px] sm:text-[11px] font-black transition-all">
           <i class="fa-solid fa-clock-rotate-left text-lg"></i><span>ประวัติ</span>
         </button>
-        <button onclick="switchView('yearend')" id="bottom-nav-yearend" class="mobile-tab-idle flex flex-col items-center justify-center gap-1 rounded-2xl py-2 text-[10px] sm:text-[11px] font-black transition-all">
+        <button onclick="switchView('yearend')" id="bottom-nav-yearend" class="mobile-tab-idle flex flex-col items-center justify-center gap-1 rounded-2xl py-2 text-[9px] sm:text-[11px] font-black transition-all">
           <i class="fa-solid fa-shield-halved text-lg"></i><span>ปิดปี</span>
+        </button>
+        <button onclick="switchView('settings')" id="bottom-nav-settings" class="mobile-tab-idle flex flex-col items-center justify-center gap-1 rounded-2xl py-2 text-[9px] sm:text-[11px] font-black transition-all">
+          <i class="fa-solid fa-gear text-lg"></i><span>ตั้งค่า</span>
         </button>
       </div>
     </nav>
@@ -593,6 +701,44 @@
     </div>
   </div>
 
+  <!-- Modal: ตรวจนับ / ปรับยอด -->
+  <div id="adjust-modal" class="hidden-view fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-3 sm:p-4">
+    <div class="bg-white rounded-3xl soft-card w-full max-w-md overflow-hidden border border-white/50">
+      <div class="px-6 py-5 flex items-center gap-4 border-b bg-indigo-50 border-indigo-100">
+        <div class="w-12 h-12 rounded-2xl bg-indigo-100 text-indigo-700 flex items-center justify-center"><i class="fa-solid fa-clipboard-check"></i></div>
+        <div class="min-w-0">
+          <h3 class="text-xl font-black truncate">ตรวจนับ / ปรับยอด</h3>
+          <p id="adjust-item-info" class="text-sm text-slate-500 truncate">ชื่อสินค้า (SKU)</p>
+        </div>
+      </div>
+      <form onsubmit="saveAdjustment(event)" class="p-6 space-y-5">
+        <input type="hidden" id="adjust-item-id" />
+        <div class="bg-slate-50 p-4 rounded-2xl flex justify-between items-center border border-slate-200">
+          <span class="text-sm text-slate-500 font-bold">ยอดในระบบตอนนี้</span>
+          <span class="font-black text-2xl text-slate-950"><span id="adjust-current-qty">0</span> <span id="adjust-unit" class="text-sm font-bold text-slate-500">ชิ้น</span></span>
+        </div>
+        <div>
+          <label class="text-sm font-black text-slate-700">ยอดที่นับจริง / ยอดใหม่ *</label>
+          <input required type="number" min="0" step="0.01" id="adjust-new-qty" oninput="updateAdjustDiff()" class="mt-2 w-full p-4 rounded-2xl border border-slate-200 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none text-2xl font-black text-center" />
+          <p id="adjust-diff-preview" class="mt-2 text-sm text-slate-500 font-bold">ส่วนต่าง: 0</p>
+        </div>
+        <div>
+          <label class="text-sm font-black text-slate-700">เหตุผลการปรับยอด *</label>
+          <input required type="text" id="adjust-note" list="adjust-reason-suggestions" placeholder="เช่น ตรวจนับประจำเดือน / ของชำรุด / ยอดยกมาผิด" class="mt-2 w-full p-3 rounded-2xl border border-slate-200 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none font-semibold" />
+          <datalist id="adjust-reason-suggestions"><option value="ตรวจนับประจำเดือน"></option><option value="ของชำรุด"></option><option value="ของสูญหาย"></option><option value="ยอดยกมาผิด"></option><option value="ตรวจนับสิ้นปี"></option></datalist>
+        </div>
+        <div>
+          <label class="text-sm font-black text-slate-700">ผู้ตรวจนับ / ผู้ปรับยอด *</label>
+          <input required type="text" id="adjust-actor-name" list="actor-suggestions" data-actor-input oninput="rememberActorName(this.value)" class="mt-2 w-full p-3 rounded-2xl border border-slate-200 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 outline-none font-semibold" />
+        </div>
+        <div class="pt-2 flex flex-col sm:flex-row justify-end gap-3">
+          <button type="button" onclick="closeAdjustModal()" class="px-5 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-black transition-all">ยกเลิก</button>
+          <button type="submit" id="adjust-submit-btn" class="px-6 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-700 text-white font-black shadow-lg transition-all">บันทึกปรับยอด</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- Modal: รับเข้า/เบิกออก -->
   <div id="stock-modal" class="hidden-view fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 p-3 sm:p-4">
     <div class="bg-white rounded-3xl soft-card w-full max-w-md overflow-hidden border border-white/50">
@@ -674,6 +820,68 @@
     </div>
   </div>
 
+
+
+  <!-- Modal: รายละเอียดสินค้า -->
+  <div id="item-detail-modal" class="hidden-view fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-end sm:items-center justify-center z-[55] p-3 sm:p-4">
+    <div class="bg-white rounded-3xl soft-card w-full max-w-5xl overflow-hidden flex flex-col max-h-[92vh] border border-white/50">
+      <div class="px-6 py-5 border-b border-slate-100 flex justify-between items-start bg-slate-50 flex-shrink-0">
+        <div class="min-w-0">
+          <h3 id="item-detail-title" class="text-xl font-black text-slate-950 truncate">รายละเอียดสินค้า</h3>
+          <p id="item-detail-subtitle" class="text-sm text-slate-500 mt-1">ข้อมูลสินค้า ประวัติ และล็อตที่เกี่ยวข้อง</p>
+        </div>
+        <button onclick="closeItemDetailModal()" class="w-10 h-10 rounded-2xl bg-white hover:bg-slate-100 text-slate-500 transition-all flex-shrink-0"><i class="fa-solid fa-xmark text-xl"></i></button>
+      </div>
+      <div class="p-5 sm:p-6 overflow-y-auto flex-1 space-y-5">
+        <div id="item-detail-summary" class="grid grid-cols-1 md:grid-cols-4 gap-3"></div>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+          <div class="lg:col-span-2 rounded-3xl border border-slate-200 overflow-hidden">
+            <div class="p-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between gap-3">
+              <h4 class="font-black text-slate-950"><i class="fa-solid fa-clock-rotate-left text-blue-600"></i> ประวัติของสินค้านี้</h4>
+              <span id="item-detail-history-count" class="text-xs font-black text-slate-500"></span>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left min-w-[720px]">
+                <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500"><tr><th class="px-4 py-3 font-black">วันที่</th><th class="px-4 py-3 font-black">ประเภท</th><th class="px-4 py-3 font-black text-right">จำนวน</th><th class="px-4 py-3 font-black">เอกสาร/หมายเหตุ</th><th class="px-4 py-3 font-black">พิมพ์</th></tr></thead>
+                <tbody id="item-detail-history" class="divide-y divide-slate-100"></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="rounded-3xl border border-slate-200 overflow-hidden">
+            <div class="p-4 border-b border-slate-100 bg-slate-50"><h4 class="font-black text-slate-950"><i class="fa-solid fa-barcode text-blue-600"></i> ล็อตที่เกี่ยวข้อง</h4></div>
+            <div id="item-detail-lots" class="p-4 space-y-3 max-h-[360px] overflow-auto"></div>
+          </div>
+        </div>
+      </div>
+      <div class="px-6 py-4 border-t border-slate-100 bg-white flex flex-col sm:flex-row justify-end gap-3 flex-shrink-0">
+        <button type="button" onclick="printItemDetail()" class="px-5 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-black transition-all"><i class="fa-solid fa-print"></i> พิมพ์รายละเอียด</button>
+        <button type="button" onclick="openQrFromDetail()" class="px-5 py-3 rounded-2xl bg-blue-50 hover:bg-blue-100 text-blue-700 font-black border border-blue-100 transition-all"><i class="fa-solid fa-qrcode"></i> QR</button>
+        <button type="button" onclick="closeItemDetailModal()" class="px-5 py-3 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-black transition-all">ปิด</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: QR Code -->
+  <div id="qr-modal" class="hidden-view fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center z-[55] p-4">
+    <div class="bg-white rounded-3xl soft-card w-full max-w-sm p-6 border border-white/50 text-center">
+      <div class="flex justify-between items-start gap-3 mb-4 text-left">
+        <div>
+          <h3 id="qr-title" class="text-xl font-black text-slate-950">QR Code สินค้า</h3>
+          <p id="qr-subtitle" class="text-sm text-slate-500 mt-1">สแกนเพื่อค้นหา SKU ในเว็บนี้</p>
+        </div>
+        <button onclick="closeQrModal()" class="w-10 h-10 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-500 transition-all"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="rounded-3xl border border-slate-200 bg-slate-50 p-4 inline-flex items-center justify-center">
+        <img id="qr-image" alt="QR Code" class="w-56 h-56 object-contain" />
+      </div>
+      <p id="qr-data" class="mt-4 text-xs font-mono text-slate-500 break-all"></p>
+      <div class="mt-5 flex flex-col sm:flex-row gap-3">
+        <button onclick="printQrCode()" class="flex-1 px-5 py-3 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-black"><i class="fa-solid fa-print"></i> พิมพ์ QR</button>
+        <button onclick="closeQrModal()" class="flex-1 px-5 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-black">ปิด</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Confirm Modal -->
   <div id="confirm-modal" class="hidden-view fixed inset-0 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
     <div class="bg-white rounded-3xl soft-card w-full max-w-md p-6 border border-white/50">
@@ -694,12 +902,21 @@
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-    import { getFirestore, collection, onSnapshot, getDocs, doc, addDoc, updateDoc, deleteDoc, serverTimestamp, writeBatch, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+    import { getFirestore, collection, onSnapshot, getDocs, doc, addDoc, updateDoc, deleteDoc, serverTimestamp, writeBatch, query, orderBy, limit, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
     // =========================
     // ตั้งค่าระบบ
     // =========================
     const ACCESS_CODE = "1234"; // เปลี่ยนรหัสเข้าเว็บตรงนี้
+    const DEFAULT_SETTINGS = {
+      systemName: "FactoryStock",
+      organization: "ระบบจัดการสต๊อกโรงงาน",
+      currentYear: "2569",
+      accessCode: ACCESS_CODE,
+      reportHeader: "รายงานระบบจัดการสต๊อก",
+      defaultUnits: "ชิ้น, กล่อง, แพ็ก, ชุด, ม้วน, เส้น, แผ่น, ถุง, คู่, รีม, ขวด, แกลลอน, กิโลกรัม, เมตร"
+    };
+    let appSettings = { ...DEFAULT_SETTINGS, ...loadLocalSettings() };
 
     const firebaseConfig = {
       apiKey: "AIzaSyCtB81sk73l3_t-VqZvnjEj_K1DkYzM9mQ",
@@ -723,14 +940,26 @@
     let currentUser = { uid: "local-passcode-user" };
     let lotItems = [{ itemId: "", quantity: "" }];
     let currentLotDetailId = null;
+    let currentQrItemId = null;
+    let currentDetailItemId = null;
     let appStarted = false;
     let loadTimer = null;
+    let urlSkuApplied = false;
 
     const paths = {
       inventory: () => collection(db, "artifacts", appId, "public", "data", "inventory"),
       transactions: () => collection(db, "artifacts", appId, "public", "data", "transactions"),
-      lots: () => collection(db, "artifacts", appId, "public", "data", "lots")
+      lots: () => collection(db, "artifacts", appId, "public", "data", "lots"),
+      settings: () => doc(db, "artifacts", appId, "public", "data", "settings", "general")
     };
+
+    function activeInventoryData() {
+      return inventoryData.filter(item => !item.archived);
+    }
+
+    function shouldShowArchived() {
+      return !!document.getElementById("show-archived-toggle")?.checked;
+    }
 
     // =========================
     // Login
@@ -739,7 +968,7 @@
       e.preventDefault();
       const input = document.getElementById("login-passcode");
       const error = document.getElementById("login-error");
-      if (input.value.trim() !== ACCESS_CODE) {
+      if (input.value.trim() !== getAccessCode()) {
         error.classList.remove("hidden-view");
         input.focus();
         return;
@@ -837,6 +1066,7 @@
       currentUser = { uid: "local-passcode-user" };
       syncActorInputs();
       setDbStatus(true, "ออนไลน์");
+      fetchSettings();
       fetchInventory();
       fetchHistory();
       fetchLots();
@@ -863,6 +1093,7 @@
         hideLoadingOverlay();
         renderDashboard();
         renderInventoryTable();
+        applySkuFromUrlOnce();
         renderLotTable();
         updateSuggestionDatalists();
         updateYearEndCounts();
@@ -902,15 +1133,39 @@
       });
     }
 
+
+
+    function fetchSettings() {
+      try {
+        onSnapshot(paths.settings(), (snap) => {
+          const remote = snap.exists() ? snap.data() : {};
+          appSettings = { ...DEFAULT_SETTINGS, ...loadLocalSettings(), ...remote };
+          localStorage.setItem("factoryStockSettings", JSON.stringify(appSettings));
+          applySettingsToUI();
+          renderSettingsForm();
+          updateSuggestionDatalists();
+        }, (error) => {
+          console.warn("Settings load warning:", error);
+          applySettingsToUI();
+          renderSettingsForm();
+        });
+      } catch (error) {
+        console.warn("Settings init warning:", error);
+        applySettingsToUI();
+        renderSettingsForm();
+      }
+    }
+
     // =========================
     // Render
     // =========================
     window.renderDashboard = function() {
-      const totalItems = inventoryData.length;
-      const totalQty = inventoryData.reduce((sum, item) => sum + number(item.quantity), 0);
-      const totalValue = inventoryData.reduce((sum, item) => sum + (number(item.quantity) * number(item.price)), 0);
-      const lowStockItems = inventoryData.filter(item => number(item.quantity) > 0 && number(item.quantity) <= number(item.minLevel));
-      const outOfStockItems = inventoryData.filter(item => number(item.quantity) <= 0);
+      const activeItems = activeInventoryData();
+      const totalItems = activeItems.length;
+      const totalQty = activeItems.reduce((sum, item) => sum + number(item.quantity), 0);
+      const totalValue = activeItems.reduce((sum, item) => sum + (number(item.quantity) * number(item.price)), 0);
+      const lowStockItems = activeItems.filter(item => number(item.quantity) > 0 && number(item.quantity) <= number(item.minLevel));
+      const outOfStockItems = activeItems.filter(item => number(item.quantity) <= 0);
 
       document.getElementById("dashboard-stats").innerHTML = `
         ${statCard("สินค้าทั้งหมด", formatNumber(totalItems), "รายการ", "fa-boxes-stacked", "blue")}
@@ -936,7 +1191,7 @@
                 <div class="text-xs text-slate-500 mt-1">${escapeHtml(item.category || "ไม่ระบุหมวดหมู่")}</div>
               </td>
               <td class="px-6 py-4 text-right font-black ${isOut ? "text-rose-600" : "text-amber-600"}">${formatNumber(qty)} <span class="text-xs text-slate-500">${escapeHtml(item.unit || "")}</span></td>
-              <td class="px-6 py-4">${stockBadge(item)}</td>
+              <td class="px-6 py-4">${item.archived ? `<span class="status-pill bg-slate-100 text-slate-700 border border-slate-200"><i class="fa-solid fa-box-archive"></i> ปิดใช้งาน</span>` : stockBadge(item)}</td>
             </tr>
           `;
         }).join("");
@@ -993,7 +1248,7 @@
             </div>
 
             <div class="mt-3 flex flex-wrap items-center gap-2">
-              ${stockBadge(item)}
+              ${item.archived ? `<span class="status-pill bg-slate-100 text-slate-700 border border-slate-200"><i class="fa-solid fa-box-archive"></i> ปิดใช้งาน</span>` : stockBadge(item)}
               <span class="status-pill bg-slate-50 text-slate-600 border border-slate-100"><i class="fa-solid fa-location-dot text-blue-500"></i> ${escapeHtml(item.location || "ไม่ระบุที่เก็บ")}</span>
             </div>
 
@@ -1002,11 +1257,20 @@
               ${item.supplierPhone ? `<div><i class="fa-solid fa-phone text-slate-400 mr-1"></i><b>ติดต่อ:</b> ${escapeHtml(item.supplierPhone)}</div>` : ""}
             </div>
 
-            <div class="mt-4 grid grid-cols-4 gap-2">
-              <button onclick="openStockModal('${item.id}', 'in')" class="col-span-1 py-3 rounded-2xl bg-emerald-50 text-emerald-700 border border-emerald-100 font-black"><i class="fa-solid fa-arrow-down"></i></button>
-              <button onclick="openStockModal('${item.id}', 'out')" ${qty <= 0 ? "disabled" : ""} class="col-span-1 py-3 rounded-2xl bg-rose-50 text-rose-700 border border-rose-100 font-black disabled:opacity-30"><i class="fa-solid fa-arrow-up"></i></button>
-              <button onclick="openItemModal('${item.id}')" class="col-span-1 py-3 rounded-2xl bg-slate-100 text-slate-700 font-black"><i class="fa-solid fa-pen"></i></button>
-              <button onclick="deleteItem('${item.id}')" class="col-span-1 py-3 rounded-2xl bg-slate-100 text-rose-700 font-black"><i class="fa-solid fa-trash-can"></i></button>
+            <div class="mt-4 grid grid-cols-7 gap-2">
+              ${item.archived ? `
+                <button onclick="restoreItem('${item.id}')" class="col-span-3 py-3 rounded-2xl bg-blue-50 text-blue-700 border border-blue-100 font-black"><i class="fa-solid fa-rotate-left"></i> กู้คืน</button>
+                <button onclick="openItemDetail('${item.id}')" class="col-span-2 py-3 rounded-2xl bg-blue-50 text-blue-700 border border-blue-100 font-black"><i class="fa-solid fa-eye"></i></button>
+                <button onclick="openQrModal('${item.id}')" class="col-span-2 py-3 rounded-2xl bg-slate-100 text-slate-700 font-black"><i class="fa-solid fa-qrcode"></i> QR</button>
+              ` : `
+                <button onclick="openItemDetail('${item.id}')" class="col-span-1 py-3 rounded-2xl bg-blue-50 text-blue-700 border border-blue-100 font-black"><i class="fa-solid fa-eye"></i></button>
+                <button onclick="openStockModal('${item.id}', 'in')" class="col-span-1 py-3 rounded-2xl bg-emerald-50 text-emerald-700 border border-emerald-100 font-black"><i class="fa-solid fa-arrow-down"></i></button>
+                <button onclick="openStockModal('${item.id}', 'out')" ${qty <= 0 ? "disabled" : ""} class="col-span-1 py-3 rounded-2xl bg-rose-50 text-rose-700 border border-rose-100 font-black disabled:opacity-30"><i class="fa-solid fa-arrow-up"></i></button>
+                <button onclick="openAdjustModal('${item.id}')" class="col-span-1 py-3 rounded-2xl bg-indigo-50 text-indigo-700 border border-indigo-100 font-black"><i class="fa-solid fa-clipboard-check"></i></button>
+                <button onclick="openQrModal('${item.id}')" class="col-span-1 py-3 rounded-2xl bg-slate-100 text-slate-700 font-black"><i class="fa-solid fa-qrcode"></i></button>
+                <button onclick="openItemModal('${item.id}')" class="col-span-1 py-3 rounded-2xl bg-slate-100 text-slate-700 font-black"><i class="fa-solid fa-pen"></i></button>
+                <button onclick="deleteItem('${item.id}')" class="col-span-1 py-3 rounded-2xl bg-slate-100 text-rose-700 font-black"><i class="fa-solid fa-box-archive"></i></button>
+              `}
             </div>
           </article>
         `;
@@ -1043,17 +1307,22 @@
               <div class="text-2xl font-black ${qtyColor(item)}">${formatNumber(qty)}</div>
               <div class="text-xs font-bold text-slate-500">${escapeHtml(item.unit || "")} · Min ${formatNumber(number(item.minLevel))}</div>
             </td>
-            <td class="px-6 py-4">${stockBadge(item)}</td>
+            <td class="px-6 py-4">${item.archived ? `<span class="status-pill bg-slate-100 text-slate-700 border border-slate-200"><i class="fa-solid fa-box-archive"></i> ปิดใช้งาน</span>` : stockBadge(item)}</td>
             <td class="px-6 py-4">
               <div class="flex items-center justify-center gap-2">
-                <button onclick="openStockModal('${item.id}', 'in')" class="w-10 h-10 rounded-2xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-100 transition-all" title="รับเข้า"><i class="fa-solid fa-arrow-down"></i></button>
-                <button onclick="openStockModal('${item.id}', 'out')" ${qty <= 0 ? "disabled" : ""} class="w-10 h-10 rounded-2xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-100 transition-all disabled:opacity-30 disabled:cursor-not-allowed" title="เบิกออก"><i class="fa-solid fa-arrow-up"></i></button>
+                ${item.archived ? `<button onclick="restoreItem('${item.id}')" class="px-4 h-10 rounded-2xl bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-100 font-black transition-all" title="กู้คืนสินค้า"><i class="fa-solid fa-rotate-left"></i> กู้คืน</button>` : `
+                  <button onclick="openStockModal('${item.id}', 'in')" class="w-10 h-10 rounded-2xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-100 transition-all" title="รับเข้า"><i class="fa-solid fa-arrow-down"></i></button>
+                  <button onclick="openStockModal('${item.id}', 'out')" ${qty <= 0 ? "disabled" : ""} class="w-10 h-10 rounded-2xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-100 transition-all disabled:opacity-30 disabled:cursor-not-allowed" title="เบิกออก"><i class="fa-solid fa-arrow-up"></i></button>
+                  <button onclick="openAdjustModal('${item.id}')" class="w-10 h-10 rounded-2xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-100 transition-all" title="ตรวจนับ/ปรับยอด"><i class="fa-solid fa-clipboard-check"></i></button>
+                `}
               </div>
             </td>
             <td class="px-6 py-4 text-right">
               <div class="flex items-center justify-end gap-2">
+                <button onclick="openItemDetail('${item.id}')" class="w-10 h-10 rounded-2xl bg-blue-50 hover:bg-blue-100 text-blue-700 transition-all" title="รายละเอียด"><i class="fa-solid fa-eye"></i></button>
+                <button onclick="openQrModal('${item.id}')" class="w-10 h-10 rounded-2xl bg-slate-100 hover:bg-blue-50 text-slate-500 hover:text-blue-700 transition-all" title="QR Code"><i class="fa-solid fa-qrcode"></i></button>
                 <button onclick="openItemModal('${item.id}')" class="w-10 h-10 rounded-2xl bg-slate-100 hover:bg-blue-50 text-slate-500 hover:text-blue-700 transition-all" title="แก้ไข"><i class="fa-solid fa-pen"></i></button>
-                <button onclick="deleteItem('${item.id}')" class="w-10 h-10 rounded-2xl bg-slate-100 hover:bg-rose-50 text-slate-500 hover:text-rose-700 transition-all" title="ลบ"><i class="fa-solid fa-trash-can"></i></button>
+                ${item.archived ? "" : `<button onclick="deleteItem('${item.id}')" class="w-10 h-10 rounded-2xl bg-slate-100 hover:bg-rose-50 text-slate-500 hover:text-rose-700 transition-all" title="ปิดใช้งาน"><i class="fa-solid fa-box-archive"></i></button>`}
               </div>
             </td>
           </tr>
@@ -1116,10 +1385,12 @@
           <div class="mt-3 text-xs text-slate-600 space-y-1">
             <div><i class="fa-solid fa-clock text-slate-400 mr-1"></i>${formatDate(item.createdAt)}</div>
             ${item.location ? `<div><i class="fa-solid fa-location-dot text-blue-500 mr-1"></i>${escapeHtml(item.location)}</div>` : ""}
+            ${item.docNumber ? `<div><i class="fa-solid fa-file-lines text-blue-500 mr-1"></i>${escapeHtml(item.docNumber)}</div>` : ""}
             ${item.lotCode ? `<div><i class="fa-solid fa-barcode text-blue-500 mr-1"></i>${escapeHtml(item.lotCode)}</div>` : ""}
             <div><i class="fa-solid fa-note-sticky text-slate-400 mr-1"></i><span class="font-black">${escapeHtml(historyNoteLabel(item))}:</span> ${escapeHtml(historyNoteText(item))}</div>
             <div><i class="fa-solid fa-user text-slate-400 mr-1"></i><span class="font-black">${escapeHtml(historyPersonLabel(item))}:</span> ${escapeHtml(historyPersonText(item))}</div>
           </div>
+          ${(item.type === "in" || item.type === "out" || item.type === "adjust") ? `<button onclick="printTransactionDocument('${item.id}')" class="mt-3 w-full px-4 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-black"><i class="fa-solid fa-print"></i> พิมพ์เอกสาร</button>` : ""}
         </article>
       `).join("");
     }
@@ -1148,10 +1419,12 @@
           <td class="px-6 py-4 text-right font-bold text-slate-500">${formatNumber(number(item.beforeQty))}</td>
           <td class="px-6 py-4 text-right font-black text-slate-900">${formatNumber(number(item.afterQty))}</td>
           <td class="px-6 py-4">
+            ${item.docNumber ? `<div class="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-slate-100 text-slate-700 border border-slate-200 text-xs font-black mb-2 mr-1"><i class="fa-solid fa-file-lines"></i> ${escapeHtml(item.docNumber)}</div>` : ""}
             ${item.lotCode ? `<div class="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-100 text-xs font-black mb-2"><i class="fa-solid fa-barcode"></i> ${escapeHtml(item.lotCode)}</div>` : ""}
             <div class="text-xs text-slate-400 font-black mb-1">${escapeHtml(historyNoteLabel(item))}</div>
             <div class="font-bold text-slate-700">${escapeHtml(historyNoteText(item))}</div>
             <div class="text-xs text-slate-500 mt-2"><i class="fa-solid fa-user"></i> <span class="font-black">${escapeHtml(historyPersonLabel(item))}:</span> ${escapeHtml(historyPersonText(item))}</div>
+            ${(item.type === "in" || item.type === "out" || item.type === "adjust") ? `<button onclick="printTransactionDocument('${item.id}')" class="mt-3 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-black text-xs"><i class="fa-solid fa-print"></i> พิมพ์เอกสาร</button>` : ""}
           </td>
         </tr>
       `).join("");
@@ -1259,6 +1532,7 @@
     }
 
     function stockBadge(item) {
+      if (item?.archived) return `<span class="status-pill bg-slate-100 text-slate-700 border border-slate-200"><i class="fa-solid fa-box-archive"></i> ปิดใช้งาน</span>`;
       const qty = number(item.quantity);
       const min = number(item.minLevel);
       if (qty <= 0) return `<span class="status-pill bg-rose-50 text-rose-700 border border-rose-100"><i class="fa-solid fa-circle-xmark"></i> หมดสต๊อก</span>`;
@@ -1278,7 +1552,7 @@
     // Navigation
     // =========================
     window.switchView = function(viewId) {
-      ["dashboard", "inventory", "receive", "lots", "history", "yearend"].forEach(id => {
+      ["dashboard", "inventory", "receive", "lots", "history", "yearend", "settings"].forEach(id => {
         document.getElementById(`view-${id}`).classList.toggle("hidden-view", id !== viewId);
         const nav = document.getElementById(`nav-${id}`);
         if (nav) {
@@ -1296,11 +1570,13 @@
         receive: "รับเข้าสินค้าเป็นล็อต",
         lots: "ตรวจสอบล็อตรับเข้า",
         history: "ประวัติรายการ",
-        yearend: "สำรองข้อมูล / เริ่มปีใหม่"
+        yearend: "สำรองข้อมูล / เริ่มปีใหม่",
+        settings: "ตั้งค่าระบบ"
       };
       document.getElementById("page-title").innerText = titles[viewId] || "FactoryStock";
       const mobileNav = document.getElementById("mobile-nav");
       if (mobileNav) mobileNav.value = viewId;
+      if (viewId === "settings") renderSettingsForm();
     };
 
     // =========================
@@ -1462,6 +1738,114 @@
       }
     };
 
+
+    // =========================
+    // Stock Audit / QR
+    // =========================
+    window.openAdjustModal = function(id) {
+      const item = inventoryData.find(i => i.id === id);
+      if (!item) return;
+      document.getElementById("adjust-item-id").value = id;
+      document.getElementById("adjust-item-info").innerText = `${item.name || "-"} (${item.sku || "-"})`;
+      document.getElementById("adjust-current-qty").innerText = formatNumber(number(item.quantity));
+      document.getElementById("adjust-unit").innerText = item.unit || "";
+      document.getElementById("adjust-new-qty").value = number(item.quantity);
+      document.getElementById("adjust-note").value = "ตรวจนับประจำเดือน";
+      document.getElementById("adjust-actor-name").value = getActorName();
+      updateAdjustDiff();
+      document.getElementById("adjust-modal").classList.remove("hidden-view");
+      setTimeout(() => document.getElementById("adjust-new-qty")?.focus(), 100);
+    };
+
+    window.closeAdjustModal = function() {
+      document.getElementById("adjust-modal").classList.add("hidden-view");
+    };
+
+    window.updateAdjustDiff = function() {
+      const id = document.getElementById("adjust-item-id")?.value;
+      const item = inventoryData.find(i => i.id === id);
+      const beforeQty = number(item?.quantity);
+      const afterQty = number(document.getElementById("adjust-new-qty")?.value);
+      const diff = afterQty - beforeQty;
+      const el = document.getElementById("adjust-diff-preview");
+      if (el) {
+        el.innerText = `ส่วนต่าง: ${diff >= 0 ? "+" : ""}${formatNumber(diff)}`;
+        el.className = `mt-2 text-sm font-black ${diff > 0 ? "text-emerald-600" : diff < 0 ? "text-rose-600" : "text-slate-500"}`;
+      }
+    };
+
+    window.saveAdjustment = async function(e) {
+      e.preventDefault();
+      const id = document.getElementById("adjust-item-id").value;
+      const item = inventoryData.find(i => i.id === id);
+      if (!item) return;
+      const beforeQty = number(item.quantity);
+      const afterQty = number(document.getElementById("adjust-new-qty").value);
+      const diff = afterQty - beforeQty;
+      const note = cleanText(document.getElementById("adjust-note").value) || "ตรวจนับ/ปรับยอด";
+      const actorName = cleanText(document.getElementById("adjust-actor-name").value) || getActorName();
+      if (afterQty < 0) {
+        showToast("ยอดใหม่ต้องไม่ติดลบ", "error");
+        return;
+      }
+      rememberActorName(actorName);
+      const submitBtn = document.getElementById("adjust-submit-btn");
+      const original = submitBtn.innerHTML;
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> กำลังบันทึก...`;
+      try {
+        const batch = writeBatch(db);
+        batch.update(doc(db, "artifacts", appId, "public", "data", "inventory", id), { quantity: afterQty, updatedAt: serverTimestamp() });
+        batch.set(doc(paths.transactions()), buildLog("adjust", item, Math.abs(diff), beforeQty, afterQty, `${note} (ส่วนต่าง ${diff >= 0 ? "+" : ""}${formatNumber(diff)})`, actorName, { adjustmentDiff: diff, auditReason: note }));
+        await batch.commit();
+        showToast("บันทึกการตรวจนับ/ปรับยอดแล้ว", "success");
+        closeAdjustModal();
+      } catch (error) {
+        console.error("Adjustment error:", error);
+        showToast("ปรับยอดไม่สำเร็จ", "error");
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = original;
+      }
+    };
+
+    window.openQrModal = function(id) {
+      const item = inventoryData.find(i => i.id === id);
+      if (!item) return;
+      currentQrItemId = id;
+      const url = new URL(location.href);
+      url.searchParams.set("sku", item.sku || "");
+      url.hash = "inventory";
+      document.getElementById("qr-title").innerText = `QR: ${item.sku || "-"}`;
+      document.getElementById("qr-subtitle").innerText = item.name || "สแกนเพื่อค้นหาสินค้า";
+      document.getElementById("qr-data").innerText = url.toString();
+      document.getElementById("qr-image").src = `https://api.qrserver.com/v1/create-qr-code/?size=320x320&margin=10&data=${encodeURIComponent(url.toString())}`;
+      document.getElementById("qr-modal").classList.remove("hidden-view");
+    };
+
+    window.closeQrModal = function() {
+      document.getElementById("qr-modal").classList.add("hidden-view");
+      currentQrItemId = null;
+    };
+
+    window.printQrCode = function() {
+      const item = inventoryData.find(i => i.id === currentQrItemId);
+      const img = document.getElementById("qr-image")?.src;
+      if (!item || !img) return;
+      openPrintWindow("QR Code สินค้า", `<div style="text-align:center"><h2>${escapeHtml(item.sku || "-")}</h2><p>${escapeHtml(item.name || "")}</p><img src="${img}" style="width:260px;height:260px"><p>ตำแหน่ง: ${escapeHtml(item.location || "-")}</p></div>`);
+    };
+
+    function applySkuFromUrlOnce() {
+      if (urlSkuApplied) return;
+      const sku = new URLSearchParams(location.search).get("sku");
+      if (!sku) return;
+      const input = document.getElementById("search-input");
+      if (input) input.value = sku;
+      urlSkuApplied = true;
+      switchView("inventory");
+      renderInventoryTable();
+    }
+
     // =========================
     // Batch Receive
     // =========================
@@ -1469,7 +1853,7 @@
       const tbody = document.getElementById("lot-table-body");
       if (!tbody) return;
 
-      const baseOptions = inventoryData.map(item => `<option value="${item.id}">${escapeHtml(item.sku || "-")} - ${escapeHtml(item.name || "-")} (คงเหลือ ${formatNumber(number(item.quantity))} ${escapeHtml(item.unit || "")})</option>`).join("");
+      const baseOptions = activeInventoryData().map(item => `<option value="${item.id}">${escapeHtml(item.sku || "-")} - ${escapeHtml(item.name || "-")} (คงเหลือ ${formatNumber(number(item.quantity))} ${escapeHtml(item.unit || "")})</option>`).join("");
 
       tbody.innerHTML = lotItems.map((row, index) => `
         <tr class="hover:bg-slate-50 transition-all">
@@ -1535,6 +1919,7 @@
       const lotNote = cleanText(document.getElementById("lot-note")?.value) || "รับเข้าเป็นล็อต";
       const lotSupplier = cleanText(document.getElementById("lot-supplier")?.value);
       const actorName = cleanText(document.getElementById("lot-actor-name")?.value) || getActorName();
+      const lotDocNumber = generateDocumentNumber("IN");
       rememberActorName(actorName);
 
       const btn = document.getElementById("btn-submit-lot");
@@ -1574,12 +1959,15 @@
           batch.set(logRef, buildLog("in", currentItem, addedQty, beforeQty, afterQty, lotNote, actorName, {
             lotId: lotRef.id,
             lotCode,
-            lotSupplier
+            lotSupplier,
+            docNumber: lotDocNumber,
+            clientCreatedAt: new Date().toISOString()
           }));
         }
 
         batch.set(lotRef, {
           lotCode,
+          docNumber: lotDocNumber,
           type: "receive",
           supplierName: lotSupplier,
           note: lotNote,
@@ -1600,6 +1988,8 @@
         fillLotCode();
         renderLotTable();
         switchView("lots");
+        const shouldPrint = await confirmDialog({ title: "พิมพ์ใบรับเข้าล็อต?", message: `บันทึก ${lotCode} สำเร็จ ต้องการพิมพ์ใบรับเข้าตอนนี้ไหม`, okText: "พิมพ์" });
+        if (shouldPrint) printLotDocument({ lotCode, docNumber: lotDocNumber, supplierName: lotSupplier, note: lotNote, actorName, totalQty, itemCount: lotDetailItems.length, items: lotDetailItems, clientCreatedAt: new Date().toISOString() });
       } catch (error) {
         console.error("Batch error:", error);
         showToast("เกิดข้อผิดพลาดในการบันทึกแบบล็อต", "error");
@@ -1712,16 +2102,21 @@
       if (!item) return;
 
       const ok = await confirmDialog({
-        title: "ยืนยันการลบสินค้า",
-        message: `ต้องการลบ “${item.name || item.sku || "รายการนี้"}” หรือไม่? ข้อมูลนี้กู้คืนไม่ได้`,
-        okText: "ลบสินค้า"
+        title: "ปิดใช้งานสินค้า",
+        message: `ต้องการปิดใช้งาน “${item.name || item.sku || "รายการนี้"}” หรือไม่? สินค้าจะไม่แสดงในคลังหลัก แต่ประวัติยังอยู่และสามารถกู้คืนได้`,
+        okText: "ปิดใช้งาน"
       });
       if (!ok) return;
 
       try {
-        await deleteDoc(doc(db, "artifacts", appId, "public", "data", "inventory", id));
-        await addDoc(paths.transactions(), {
-          type: "delete",
+        const batch = writeBatch(db);
+        batch.update(doc(db, "artifacts", appId, "public", "data", "inventory", id), {
+          archived: true,
+          archivedAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        });
+        batch.set(doc(paths.transactions()), {
+          type: "archive",
           itemId: id,
           sku: item.sku || "",
           name: item.name || "",
@@ -1730,16 +2125,43 @@
           supplierName: item.supplierName || "",
           quantity: number(item.quantity),
           beforeQty: number(item.quantity),
-          afterQty: 0,
-          note: "ลบสินค้า",
+          afterQty: number(item.quantity),
+          note: "ปิดใช้งานสินค้า",
           actor: currentUser?.uid || "anonymous",
           actorName: getActorName(),
           createdAt: serverTimestamp()
         });
-        showToast("ลบข้อมูลสำเร็จ", "success");
+        await batch.commit();
+        showToast("ปิดใช้งานสินค้าแล้ว", "success");
       } catch (error) {
-        console.error("Delete error:", error);
-        showToast("เกิดข้อผิดพลาดในการลบ", "error");
+        console.error("Archive error:", error);
+        showToast("ปิดใช้งานสินค้าไม่สำเร็จ", "error");
+      }
+    };
+
+    window.restoreItem = async function(id) {
+      if (!currentUser) return;
+      const item = inventoryData.find(i => i.id === id);
+      if (!item) return;
+      const ok = await confirmDialog({
+        title: "กู้คืนสินค้า",
+        message: `ต้องการกู้คืน “${item.name || item.sku || "รายการนี้"}” กลับมาแสดงในคลังหลักหรือไม่?`,
+        okText: "กู้คืน"
+      });
+      if (!ok) return;
+      try {
+        const batch = writeBatch(db);
+        batch.update(doc(db, "artifacts", appId, "public", "data", "inventory", id), {
+          archived: false,
+          restoredAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        });
+        batch.set(doc(paths.transactions()), buildLog("restore", item, 0, number(item.quantity), number(item.quantity), "กู้คืนสินค้า", getActorName()));
+        await batch.commit();
+        showToast("กู้คืนสินค้าแล้ว", "success");
+      } catch (error) {
+        console.error("Restore item error:", error);
+        showToast("กู้คืนสินค้าไม่สำเร็จ", "error");
       }
     };
 
@@ -1796,13 +2218,17 @@
         const note = noteRaw || (type === "in" ? "รับเข้าสต๊อก" : "เบิกออกสต๊อก");
         const actorName = actorRaw || getActorName();
         rememberActorName(actorName);
-        const logExtra = type === "out" ? { withdrawerName: actorName, requesterName: actorName, purpose: note } : {};
+        const docNumber = generateDocumentNumber(type === "out" ? "OUT" : "IN");
+        const logExtra = type === "out" ? { docNumber, withdrawerName: actorName, requesterName: actorName, purpose: note, clientCreatedAt: new Date().toISOString() } : { docNumber, clientCreatedAt: new Date().toISOString() };
+        const logData = buildLog(type, item, amount, beforeQty, afterQty, note, actorName, logExtra);
         batch.update(itemRef, { quantity: afterQty, updatedAt: serverTimestamp() });
-        batch.set(logRef, buildLog(type, item, amount, beforeQty, afterQty, note, actorName, logExtra));
+        batch.set(logRef, logData);
         await batch.commit();
 
         showToast(`ทำรายการ${type === "in" ? "รับเข้า" : "เบิกออก"}สำเร็จ`, "success");
         closeStockModal();
+        const shouldPrint = await confirmDialog({ title: type === "out" ? "พิมพ์ใบเบิก?" : "พิมพ์ใบรับเข้า?", message: `บันทึกเอกสารเลขที่ ${docNumber} แล้ว ต้องการพิมพ์ตอนนี้ไหม`, okText: "พิมพ์" });
+        if (shouldPrint) printTransactionDocument(logData);
       } catch (error) {
         console.error("Stock update error:", error);
         showToast("เกิดข้อผิดพลาดในการอัปเดตสต๊อก", "error");
@@ -1837,8 +2263,9 @@
     // =========================
     function getFilteredInventory() {
       const queryText = (document.getElementById("search-input")?.value || "").toLowerCase().trim();
-      return inventoryData.filter(item => {
-        const text = `${item.sku || ""} ${item.name || ""} ${item.category || ""} ${item.location || ""} ${item.supplierName || ""} ${item.supplierPhone || ""}`.toLowerCase();
+      const baseItems = shouldShowArchived() ? inventoryData : activeInventoryData();
+      return baseItems.filter(item => {
+        const text = `${item.sku || ""} ${item.name || ""} ${item.category || ""} ${item.location || ""} ${item.supplierName || ""} ${item.supplierPhone || ""} ${item.archived ? "ปิดใช้งาน archived" : ""}`.toLowerCase();
         return text.includes(queryText);
       });
     }
@@ -1867,7 +2294,7 @@
 
       return historyData.filter(item => {
         if (typeFilter && item.type !== typeFilter) return false;
-        const text = `${item.type || ""} ${historyTypeText(item.type)} ${item.sku || ""} ${item.name || ""} ${item.note || ""} ${item.purpose || ""} ${item.actorName || ""} ${item.withdrawerName || ""} ${item.requesterName || ""} ${item.actor || ""} ${item.location || ""} ${item.supplierName || ""} ${item.lotCode || ""} ${item.lotSupplier || ""}`.toLowerCase();
+        const text = `${item.type || ""} ${historyTypeText(item.type)} ${item.sku || ""} ${item.name || ""} ${item.note || ""} ${item.purpose || ""} ${item.actorName || ""} ${item.withdrawerName || ""} ${item.requesterName || ""} ${item.actor || ""} ${item.location || ""} ${item.supplierName || ""} ${item.lotCode || ""} ${item.lotSupplier || ""} ${item.auditReason || ""} ${item.adjustmentDiff || ""}`.toLowerCase();
         if (!text.includes(queryText)) return false;
         const date = toDateObject(item.createdAt);
         if (fromDate && (!date || date < new Date(`${fromDate}T00:00:00`))) return false;
@@ -1875,6 +2302,50 @@
         return true;
       });
     }
+
+    function getReorderItems() {
+      return activeInventoryData()
+        .filter(item => number(item.quantity) <= number(item.minLevel))
+        .sort((a, b) => number(a.quantity) - number(b.quantity));
+    }
+
+    window.exportReorderList = function() {
+      const rows = getReorderItems().map(item => {
+        const suggested = Math.max(number(item.minLevel) * 2 - number(item.quantity), 0);
+        return [
+          item.sku || "",
+          item.name || "",
+          item.category || "",
+          item.location || "",
+          item.supplierName || "",
+          item.supplierPhone || "",
+          number(item.quantity),
+          item.unit || "",
+          number(item.minLevel),
+          suggested,
+          stockStatusText(item)
+        ];
+      });
+      downloadExcel("factory-stock-reorder-list.xls", ["SKU", "ชื่อสินค้า", "หมวดหมู่", "ที่เก็บ", "ผู้ขาย", "ติดต่อ", "คงเหลือ", "หน่วย", "จุดสั่งซื้อ", "จำนวนแนะนำให้ซื้อ", "สถานะ"], rows, "รายการสินค้าที่ควรสั่งซื้อ");
+    };
+
+    window.printReorderList = function() {
+      const rows = getReorderItems();
+      const table = buildHtmlTable(["SKU", "สินค้า", "ที่เก็บ", "ผู้ขาย", "คงเหลือ", "Min", "จำนวนแนะนำ", "สถานะ"], rows.map(item => {
+        const suggested = Math.max(number(item.minLevel) * 2 - number(item.quantity), 0);
+        return [
+          item.sku || "-",
+          item.name || "-",
+          item.location || "-",
+          item.supplierName || "-",
+          `${formatNumber(item.quantity)} ${item.unit || ""}`,
+          formatNumber(item.minLevel),
+          `${formatNumber(suggested)} ${item.unit || ""}`,
+          stockStatusText(item)
+        ];
+      }));
+      openPrintWindow("รายการสินค้าที่ควรสั่งซื้อ", `<p>จำนวนรายการที่ควรสั่งซื้อ: <b>${formatNumber(rows.length)}</b></p>${table}`);
+    };
 
     window.exportInventory = function() {
       const rows = getFilteredInventory().map(item => [
@@ -1905,11 +2376,12 @@
         item.unit || "",
         number(item.beforeQty),
         number(item.afterQty),
+        item.docNumber || "",
         item.lotCode || "",
         historyNoteText(item),
         historyPersonText(item)
       ]);
-      downloadExcel("factory-stock-history.xls", ["วันที่/เวลา", "ประเภท", "SKU", "ชื่อสินค้า", "จำนวน", "หน่วย", "ก่อน", "หลัง", "รหัสล็อต", "เบิกไปใช้/หมายเหตุ", "ผู้เบิก/ผู้ทำรายการ"], rows, "ประวัติรับเข้า-เบิกออก");
+      downloadExcel("factory-stock-history.xls", ["วันที่/เวลา", "ประเภท", "SKU", "ชื่อสินค้า", "จำนวน", "หน่วย", "ก่อน", "หลัง", "เลขเอกสาร", "รหัสล็อต", "เบิกไปใช้/หมายเหตุ", "ผู้เบิก/ผู้ทำรายการ"], rows, "ประวัติรับเข้า-เบิกออก");
     };
 
 
@@ -1987,9 +2459,10 @@
 
     window.printHistoryReport = function() {
       const rows = getFilteredHistory();
-      const table = buildHtmlTable(["วันที่/เวลา", "ประเภท", "SKU", "สินค้า", "จำนวน", "ก่อน", "หลัง", "รหัสล็อต", "เบิกไปใช้/หมายเหตุ", "ผู้เบิก/ผู้ทำ"], rows.map(item => [
+      const table = buildHtmlTable(["วันที่/เวลา", "ประเภท", "เลขเอกสาร", "SKU", "สินค้า", "จำนวน", "ก่อน", "หลัง", "รหัสล็อต", "เบิกไปใช้/หมายเหตุ", "ผู้เบิก/ผู้ทำ"], rows.map(item => [
         formatDate(item.createdAt),
         historyTypeText(item.type),
+        item.docNumber || "-",
         item.sku || "-",
         item.name || "-",
         `${item.type === "out" ? "-" : "+"}${formatNumber(item.quantity)} ${item.unit || ""}`,
@@ -2001,6 +2474,277 @@
       ]));
       openPrintWindow("รายงานประวัติรายการ", `<p>จำนวนรายการ: <b>${formatNumber(rows.length)}</b></p>${table}`);
     };
+
+
+
+    // =========================
+    // Settings / CSV Import / Product Detail / Documents
+    // =========================
+    function loadLocalSettings() {
+      try { return JSON.parse(localStorage.getItem("factoryStockSettings") || "{}"); }
+      catch { return {}; }
+    }
+
+    function getAccessCode() {
+      return String(appSettings.accessCode || ACCESS_CODE).trim();
+    }
+
+    function applySettingsToUI() {
+      document.title = `${appSettings.systemName || "FactoryStock"} - ระบบจัดการสต๊อก`;
+      const titleEls = document.querySelectorAll("h1");
+      titleEls.forEach(el => {
+        if ((el.textContent || "").trim() === "FactoryStock") el.textContent = appSettings.systemName || "FactoryStock";
+      });
+    }
+
+    window.renderSettingsForm = function() {
+      const map = {
+        "settings-system-name": appSettings.systemName || DEFAULT_SETTINGS.systemName,
+        "settings-organization": appSettings.organization || DEFAULT_SETTINGS.organization,
+        "settings-current-year": appSettings.currentYear || DEFAULT_SETTINGS.currentYear,
+        "settings-access-code": appSettings.accessCode || ACCESS_CODE,
+        "settings-report-header": appSettings.reportHeader || DEFAULT_SETTINGS.reportHeader,
+        "settings-default-units": appSettings.defaultUnits || DEFAULT_SETTINGS.defaultUnits
+      };
+      Object.entries(map).forEach(([id, value]) => {
+        const el = document.getElementById(id);
+        if (el) el.value = value;
+      });
+    };
+
+    window.saveSettings = async function(e) {
+      e.preventDefault();
+      const data = {
+        systemName: cleanText(document.getElementById("settings-system-name")?.value) || DEFAULT_SETTINGS.systemName,
+        organization: cleanText(document.getElementById("settings-organization")?.value),
+        currentYear: cleanText(document.getElementById("settings-current-year")?.value),
+        accessCode: cleanText(document.getElementById("settings-access-code")?.value) || ACCESS_CODE,
+        reportHeader: cleanText(document.getElementById("settings-report-header")?.value) || DEFAULT_SETTINGS.reportHeader,
+        defaultUnits: cleanText(document.getElementById("settings-default-units")?.value) || DEFAULT_SETTINGS.defaultUnits,
+        updatedAt: serverTimestamp()
+      };
+      setButtonBusy("btn-save-settings", true, "กำลังบันทึก...");
+      try {
+        await setDoc(paths.settings(), data, { merge: true });
+        appSettings = { ...appSettings, ...data };
+        localStorage.setItem("factoryStockSettings", JSON.stringify({ ...data, updatedAt: new Date().toISOString() }));
+        applySettingsToUI();
+        updateSuggestionDatalists();
+        showToast("บันทึกตั้งค่าระบบแล้ว", "success");
+      } catch (error) {
+        console.error("Settings save error:", error);
+        showToast("บันทึกตั้งค่าไม่สำเร็จ", "error");
+      } finally {
+        setButtonBusy("btn-save-settings", false);
+      }
+    };
+
+    function parseCsv(text) {
+      const rows = [];
+      let row = [], cell = "", inQuotes = false;
+      for (let i = 0; i < text.length; i++) {
+        const ch = text[i];
+        const next = text[i + 1];
+        if (ch === '"') {
+          if (inQuotes && next === '"') { cell += '"'; i++; }
+          else inQuotes = !inQuotes;
+        } else if (ch === "," && !inQuotes) {
+          row.push(cell); cell = "";
+        } else if ((ch === "\n" || ch === "\r") && !inQuotes) {
+          if (ch === "\r" && next === "\n") i++;
+          row.push(cell); cell = "";
+          if (row.some(v => cleanText(v))) rows.push(row);
+          row = [];
+        } else {
+          cell += ch;
+        }
+      }
+      row.push(cell);
+      if (row.some(v => cleanText(v))) rows.push(row);
+      return rows;
+    }
+
+    function rowValue(row, aliases) {
+      const keys = Object.keys(row);
+      for (const alias of aliases) {
+        const key = keys.find(k => cleanText(k).toLowerCase() === cleanText(alias).toLowerCase());
+        if (key) return row[key];
+      }
+      return "";
+    }
+
+    window.downloadCsvTemplate = function() {
+      const headers = ["SKU", "ชื่อสินค้า", "หมวดหมู่", "หน่วยนับ", "จำนวน", "จุดสั่งซื้อ", "ราคา", "ตำแหน่งจัดเก็บ", "ซัพพลายเออร์", "ติดต่อ", "วันที่ซื้อล่าสุด"];
+      const rows = [
+        ["RM-001", "เหล็กแผ่น 1.2 มม.", "วัตถุดิบ", "แผ่น", "25", "10", "450", "ชั้น A1", "ABC Supply", "08x-xxx-xxxx", "2026-05-06"],
+        ["PK-001", "กล่องกระดาษลูกฟูก เบอร์ M", "บรรจุภัณฑ์", "ใบ", "120", "50", "12", "โซนแพ็กกิ้ง", "ร้านบรรจุภัณฑ์", "", "2026-05-06"]
+      ];
+      const csv = [headers, ...rows].map(r => r.map(v => `"${String(v).replaceAll('"','""')}"`).join(",")).join("\n");
+      const blob = new Blob(["\ufeff" + csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "factory-stock-import-template.csv";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    };
+
+    window.importCsvItems = async function() {
+      const file = document.getElementById("csv-import-file")?.files?.[0];
+      const resultEl = document.getElementById("csv-import-result");
+      if (!file) { showToast("กรุณาเลือกไฟล์ CSV ก่อน", "error"); return; }
+      setButtonBusy("btn-import-csv", true, "กำลังนำเข้า...");
+      try {
+        const text = await file.text();
+        const csvRows = parseCsv(text.replace(/^\ufeff/, ""));
+        if (csvRows.length < 2) throw new Error("ไม่พบข้อมูลในไฟล์ CSV");
+        const headers = csvRows[0].map(h => cleanText(h));
+        const updateExisting = !!document.getElementById("csv-update-existing")?.checked;
+        let created = 0, updated = 0, skipped = 0;
+        const errors = [];
+        let batch = writeBatch(db), ops = 0;
+        const commitIfNeeded = async (force = false) => {
+          if (ops > 0 && (force || ops >= 400)) { await batch.commit(); batch = writeBatch(db); ops = 0; }
+        };
+        const seenSku = new Set();
+        for (let i = 1; i < csvRows.length; i++) {
+          const raw = {};
+          headers.forEach((h, idx) => raw[h] = csvRows[i][idx] ?? "");
+          const sku = cleanSku(rowValue(raw, ["SKU", "รหัส", "รหัสสินค้า", "sku"]));
+          const name = cleanText(rowValue(raw, ["ชื่อสินค้า", "ชื่อ", "name", "สินค้า"]));
+          if (!sku || !name) { skipped++; errors.push(`แถว ${i + 1}: ไม่มี SKU หรือชื่อสินค้า`); continue; }
+          if (seenSku.has(sku)) { skipped++; errors.push(`แถว ${i + 1}: SKU ซ้ำในไฟล์ (${sku})`); continue; }
+          seenSku.add(sku);
+          const existing = inventoryData.find(item => cleanSku(item.sku) === sku);
+          if (existing && !updateExisting) { skipped++; continue; }
+          const itemData = {
+            sku,
+            name,
+            category: cleanText(rowValue(raw, ["หมวดหมู่", "category"])),
+            unit: cleanText(rowValue(raw, ["หน่วยนับ", "หน่วย", "unit"])) || "ชิ้น",
+            location: cleanText(rowValue(raw, ["ตำแหน่งจัดเก็บ", "ที่เก็บ", "location"])),
+            supplierName: cleanText(rowValue(raw, ["ซัพพลายเออร์", "ผู้ขาย", "supplier", "supplierName"])),
+            supplierPhone: cleanText(rowValue(raw, ["ติดต่อ", "เบอร์ติดต่อ", "supplierPhone", "phone"])),
+            lastPurchaseDate: cleanText(rowValue(raw, ["วันที่ซื้อล่าสุด", "lastPurchaseDate"])),
+            minLevel: number(rowValue(raw, ["จุดสั่งซื้อ", "min", "minLevel"])),
+            price: number(rowValue(raw, ["ราคา", "ราคา/หน่วย", "price"])),
+            updatedAt: serverTimestamp()
+          };
+          const qty = number(rowValue(raw, ["จำนวน", "คงเหลือ", "quantity"]));
+          if (existing) {
+            const beforeQty = number(existing.quantity);
+            const updateData = { ...itemData };
+            if (rowValue(raw, ["จำนวน", "คงเหลือ", "quantity"]) !== "") updateData.quantity = qty;
+            batch.update(doc(db, "artifacts", appId, "public", "data", "inventory", existing.id), updateData); ops++;
+            if (updateData.quantity !== undefined && updateData.quantity !== beforeQty) { batch.set(doc(paths.transactions()), buildLog("adjust", { ...existing, ...itemData }, Math.abs(qty - beforeQty), beforeQty, qty, "นำเข้า CSV / ปรับยอดจากไฟล์", getActorName(), { adjustmentDiff: qty - beforeQty, docNumber: generateDocumentNumber("CSV"), clientCreatedAt: new Date().toISOString() })); ops++; }
+            updated++;
+          } else {
+            const itemRef = doc(paths.inventory());
+            batch.set(itemRef, { ...itemData, quantity: qty, createdAt: serverTimestamp() }); ops++;
+            batch.set(doc(paths.transactions()), { type: "create", itemId: itemRef.id, sku, name, unit: itemData.unit, location: itemData.location, supplierName: itemData.supplierName, quantity: qty, beforeQty: 0, afterQty: qty, note: "นำเข้า CSV / สร้างสินค้าใหม่", actor: currentUser?.uid || "anonymous", actorName: getActorName(), docNumber: generateDocumentNumber("CSV"), clientCreatedAt: new Date().toISOString(), createdAt: serverTimestamp() }); ops++;
+            created++;
+          }
+          await commitIfNeeded();
+        }
+        await commitIfNeeded(true);
+        const msg = `นำเข้าสำเร็จ: เพิ่มใหม่ ${created} / อัปเดต ${updated} / ข้าม ${skipped}`;
+        if (resultEl) { resultEl.classList.remove("hidden-view"); resultEl.innerHTML = `${escapeHtml(msg)}${errors.length ? `<div class="mt-2 text-xs text-amber-700">${escapeHtml(errors.slice(0, 6).join(" | "))}${errors.length > 6 ? " ..." : ""}</div>` : ""}`; }
+        showToast(msg, "success");
+      } catch (error) {
+        console.error("CSV import error:", error);
+        showToast(error.message || "นำเข้า CSV ไม่สำเร็จ", "error");
+      } finally {
+        setButtonBusy("btn-import-csv", false);
+      }
+    };
+
+    window.openItemDetail = function(id) {
+      const item = inventoryData.find(i => i.id === id);
+      if (!item) return;
+      currentDetailItemId = id;
+      const itemHistories = historyData.filter(h => h.itemId === id || cleanSku(h.sku) === cleanSku(item.sku)).slice(0, 80);
+      const itemLots = lotsData.filter(lot => Array.isArray(lot.items) && lot.items.some(i => i.itemId === id || cleanSku(i.sku) === cleanSku(item.sku)));
+      document.getElementById("item-detail-title").innerText = `${item.name || "-"}`;
+      document.getElementById("item-detail-subtitle").innerText = `${item.sku || "-"} · ${item.category || "ไม่ระบุหมวดหมู่"}`;
+      document.getElementById("item-detail-summary").innerHTML = `
+        ${lotInfoBox("SKU", item.sku || "-", "fa-barcode")}
+        ${lotInfoBox("คงเหลือ", `${formatNumber(number(item.quantity))} ${item.unit || ""}`, "fa-box")}
+        ${lotInfoBox("ตำแหน่ง", item.location || "ไม่ระบุ", "fa-location-dot")}
+        ${lotInfoBox("ผู้ขาย", item.supplierName || "ไม่ระบุ", "fa-store")}
+        ${lotInfoBox("จุดสั่งซื้อ", `${formatNumber(number(item.minLevel))} ${item.unit || ""}`, "fa-triangle-exclamation")}
+        ${lotInfoBox("ราคา/หน่วย", `฿${formatNumber(number(item.price))}`, "fa-tag")}
+        ${lotInfoBox("ติดต่อ", item.supplierPhone || "-", "fa-phone")}
+        ${lotInfoBox("สถานะ", stockStatusText(item), "fa-circle-check")}
+      `;
+      document.getElementById("item-detail-history-count").innerText = `${formatNumber(itemHistories.length)} รายการล่าสุด`;
+      document.getElementById("item-detail-history").innerHTML = itemHistories.length ? itemHistories.map(h => `
+        <tr>
+          <td class="px-4 py-3 text-sm font-bold text-slate-600">${formatDate(h.createdAt || h.clientCreatedAt)}</td>
+          <td class="px-4 py-3"><span class="status-pill ${historyPillClass(h.type)}">${historyTypeText(h.type)}</span></td>
+          <td class="px-4 py-3 text-right font-black ${h.type === "out" ? "text-rose-600" : "text-emerald-600"}">${h.type === "out" ? "-" : "+"}${formatNumber(number(h.quantity))} ${escapeHtml(h.unit || "")}</td>
+          <td class="px-4 py-3 text-sm"><div class="font-black text-slate-700">${escapeHtml(h.docNumber || h.lotCode || "-")}</div><div class="text-slate-500">${escapeHtml(historyNoteText(h))}</div></td>
+          <td class="px-4 py-3"><button onclick="printTransactionDocument('${h.id}')" class="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-black text-xs"><i class="fa-solid fa-print"></i></button></td>
+        </tr>
+      `).join("") : `<tr><td colspan="5" class="px-4 py-8 text-center text-slate-500 font-bold">ยังไม่มีประวัติของสินค้านี้</td></tr>`;
+      document.getElementById("item-detail-lots").innerHTML = itemLots.length ? itemLots.map(lot => `
+        <button onclick="openLotDetail('${lot.id}')" class="w-full text-left rounded-2xl bg-slate-50 hover:bg-blue-50 border border-slate-200 hover:border-blue-100 p-4 transition-all">
+          <div class="font-black text-slate-950">${escapeHtml(lot.lotCode || lot.id || "-")}</div>
+          <div class="text-xs text-slate-500 mt-1">${formatDate(lot.createdAt)} · ${escapeHtml(lot.supplierName || "ไม่ระบุผู้ขาย")}</div>
+          <div class="text-xs text-blue-600 font-black mt-2">${formatNumber(number((lot.items || []).find(i => i.itemId === id || cleanSku(i.sku) === cleanSku(item.sku))?.quantity))} ${escapeHtml(item.unit || "")}</div>
+        </button>
+      `).join("") : `<div class="p-5 text-center text-slate-500 font-bold">ยังไม่มีล็อตรับเข้าที่เกี่ยวข้อง</div>`;
+      document.getElementById("item-detail-modal").classList.remove("hidden-view");
+    };
+
+    window.closeItemDetailModal = function() {
+      document.getElementById("item-detail-modal").classList.add("hidden-view");
+      currentDetailItemId = null;
+    };
+
+    window.openQrFromDetail = function() {
+      if (currentDetailItemId) openQrModal(currentDetailItemId);
+    };
+
+    window.printItemDetail = function() {
+      const item = inventoryData.find(i => i.id === currentDetailItemId);
+      if (!item) return;
+      const itemHistories = historyData.filter(h => h.itemId === item.id || cleanSku(h.sku) === cleanSku(item.sku)).slice(0, 30);
+      const table = buildHtmlTable(["วันที่", "ประเภท", "เลขเอกสาร", "จำนวน", "ก่อน", "หลัง", "หมายเหตุ", "ผู้ทำ"], itemHistories.map(h => [
+        formatDate(h.createdAt || h.clientCreatedAt), historyTypeText(h.type), h.docNumber || h.lotCode || "-", `${h.type === "out" ? "-" : "+"}${formatNumber(h.quantity)} ${h.unit || ""}`, formatNumber(h.beforeQty), formatNumber(h.afterQty), historyNoteText(h), historyPersonText(h)
+      ]));
+      const meta = `<p>SKU: <b>${escapeHtml(item.sku || "-")}</b> | หมวดหมู่: <b>${escapeHtml(item.category || "-")}</b> | คงเหลือ: <b>${formatNumber(number(item.quantity))} ${escapeHtml(item.unit || "")}</b> | ที่เก็บ: <b>${escapeHtml(item.location || "-")}</b></p><p>ผู้ขาย: ${escapeHtml(item.supplierName || "-")} | ติดต่อ: ${escapeHtml(item.supplierPhone || "-")} | สถานะ: ${escapeHtml(stockStatusText(item))}</p>`;
+      openPrintWindow(`รายละเอียดสินค้า ${item.sku || ""}`, `${meta}${table}`);
+    };
+
+    function generateDocumentNumber(prefix) {
+      const d = new Date();
+      const pad = n => String(n).padStart(2, "0");
+      return `${prefix}-${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}`;
+    }
+
+    window.printTransactionDocument = function(ref) {
+      const item = typeof ref === "string" ? historyData.find(h => h.id === ref) : ref;
+      if (!item) return;
+      const isOut = item.type === "out";
+      const isAdjust = item.type === "adjust";
+      const title = isAdjust ? "ใบปรับยอดตรวจนับ" : isOut ? "ใบเบิกสินค้า" : "ใบรับเข้าสินค้า";
+      const docNo = item.docNumber || item.lotCode || "-";
+      const rows = [[item.sku || "-", item.name || "-", `${formatNumber(number(item.quantity))} ${item.unit || ""}`, formatNumber(item.beforeQty), formatNumber(item.afterQty), historyNoteText(item)]];
+      const table = buildHtmlTable(["SKU", "สินค้า", "จำนวน", "ก่อน", "หลัง", isOut ? "เบิกไปใช้ทำอะไร" : "หมายเหตุ"], rows);
+      const meta = `<p>เลขที่เอกสาร: <b>${escapeHtml(docNo)}</b> | วันที่: <b>${formatDate(item.createdAt || item.clientCreatedAt)}</b></p><p>${escapeHtml(historyPersonLabel(item))}: <b>${escapeHtml(historyPersonText(item))}</b> | ตำแหน่งจัดเก็บ: <b>${escapeHtml(item.location || "-")}</b></p>`;
+      const sign = `<div class="signature"><div class="signbox"><div class="line"></div>ผู้ทำรายการ</div><div class="signbox"><div class="line"></div>${isOut ? "ผู้เบิก/ผู้รับของ" : "ผู้รับเข้า"}</div><div class="signbox"><div class="line"></div>ผู้อนุมัติ</div></div>`;
+      openPrintWindow(title, `${meta}${table}${sign}`);
+    };
+
+    function printLotDocument(lot) {
+      const items = Array.isArray(lot.items) ? lot.items : [];
+      const table = buildHtmlTable(["SKU", "สินค้า", "จำนวนรับ", "หน่วย", "ก่อนรับ", "หลังรับ", "ที่เก็บ"], items.map(item => [item.sku || "-", item.name || "-", formatNumber(item.quantity), item.unit || "", formatNumber(item.beforeQty), formatNumber(item.afterQty), item.location || "-"]));
+      const meta = `<p>เลขที่เอกสาร: <b>${escapeHtml(lot.docNumber || "-")}</b> | รหัสล็อต: <b>${escapeHtml(lot.lotCode || "-")}</b> | วันที่: <b>${formatDate(lot.createdAt || lot.clientCreatedAt)}</b></p><p>ผู้ขาย/แหล่งที่มา: <b>${escapeHtml(lot.supplierName || "-")}</b> | ผู้ทำรายการ: <b>${escapeHtml(lot.actorName || "-")}</b> | หมายเหตุ: ${escapeHtml(lot.note || "-")}</p>`;
+      const sign = `<div class="signature"><div class="signbox"><div class="line"></div>ผู้รับเข้า</div><div class="signbox"><div class="line"></div>ผู้ตรวจสอบ</div><div class="signbox"><div class="line"></div>ผู้อนุมัติ</div></div>`;
+      openPrintWindow("ใบรับเข้าสินค้า", `${meta}${table}${sign}`);
+    }
 
     // =========================
     // Year-end Backup / Clear History
@@ -2072,19 +2816,21 @@
       ]);
       return {
         backupType: "FactoryStock full backup",
-        version: "v9-mobile-yearend",
+        version: "v11-settings-import-detail-docs",
         appId,
         exportedAt: new Date().toISOString(),
         exportedAtText: new Date().toLocaleString("th-TH"),
         counts: {
           inventory: inventory.length,
           transactions: transactions.length,
-          lots: lots.length
+          lots: lots.length,
+          settings: 1
         },
         data: {
           inventory,
           transactions,
-          lots
+          lots,
+          settings: normalizeBackupValue(appSettings)
         }
       };
     }
@@ -2190,6 +2936,86 @@
       }
     };
 
+    function readSelectedRestoreFile() {
+      return new Promise((resolve, reject) => {
+        const input = document.getElementById("restore-file-input");
+        const file = input?.files?.[0];
+        if (!file) return reject(new Error("ยังไม่ได้เลือกไฟล์สำรอง"));
+        const reader = new FileReader();
+        reader.onload = () => {
+          try { resolve(JSON.parse(String(reader.result || "{}"))); }
+          catch (error) { reject(new Error("ไฟล์ JSON ไม่ถูกต้อง")); }
+        };
+        reader.onerror = () => reject(new Error("อ่านไฟล์ไม่สำเร็จ"));
+        reader.readAsText(file, "utf-8");
+      });
+    }
+
+    function sanitizeRestoreRecord(record) {
+      const out = { ...record };
+      delete out.id;
+      return out;
+    }
+
+    async function writeCollectionFromBackup(collectionRef, records = []) {
+      let count = 0;
+      let batch = writeBatch(db);
+      let batchCount = 0;
+      for (const record of records) {
+        if (!record || typeof record !== "object") continue;
+        const id = cleanText(record.id) || doc(collectionRef).id;
+        batch.set(doc(collectionRef, id), sanitizeRestoreRecord(record));
+        count += 1;
+        batchCount += 1;
+        if (batchCount === 450) {
+          await batch.commit();
+          batch = writeBatch(db);
+          batchCount = 0;
+        }
+      }
+      if (batchCount > 0) await batch.commit();
+      return count;
+    }
+
+    window.restoreBackupFromFile = async function() {
+      setButtonBusy("btn-restore-backup", true, "กำลังอ่านไฟล์...");
+      try {
+        const payload = await readSelectedRestoreFile();
+        const data = payload.data || {};
+        const inventory = Array.isArray(data.inventory) ? data.inventory : [];
+        const transactions = Array.isArray(data.transactions) ? data.transactions : [];
+        const lots = Array.isArray(data.lots) ? data.lots : [];
+        if (inventory.length + transactions.length + lots.length === 0) {
+          showToast("ไฟล์นี้ไม่มีข้อมูลที่นำเข้าได้", "error");
+          return;
+        }
+        const ok = await confirmDialog({
+          title: "ยืนยัน Restore ข้อมูล?",
+          message: `ระบบจะล้างข้อมูลปัจจุบันในคลัง/ประวัติ/ล็อต แล้วนำเข้าจากไฟล์นี้: สินค้า ${inventory.length} / ประวัติ ${transactions.length} / ล็อต ${lots.length}`,
+          okText: "Restore ข้อมูล"
+        });
+        if (!ok) return;
+        setButtonBusy("btn-restore-backup", true, "กำลัง Restore...");
+        await Promise.all([
+          deleteCollectionInBatches(paths.inventory(), "สินค้า"),
+          deleteCollectionInBatches(paths.transactions(), "ประวัติ"),
+          deleteCollectionInBatches(paths.lots(), "ล็อต")
+        ]);
+        const [iCount, tCount, lCount] = await Promise.all([
+          writeCollectionFromBackup(paths.inventory(), inventory),
+          writeCollectionFromBackup(paths.transactions(), transactions),
+          writeCollectionFromBackup(paths.lots(), lots)
+        ]);
+        if (settings) await setDoc(paths.settings(), { ...settings, updatedAt: serverTimestamp() }, { merge: true });
+        showToast(`Restore สำเร็จ: สินค้า ${iCount} / ประวัติ ${tCount} / ล็อต ${lCount}`, "success");
+      } catch (error) {
+        console.error("Restore backup error:", error);
+        showToast(error.message || "นำเข้าข้อมูลสำรองไม่สำเร็จ", "error");
+      } finally {
+        setButtonBusy("btn-restore-backup", false);
+      }
+    };
+
     function downloadExcel(filename, headers, rows, sheetTitle) {
       const table = buildHtmlTable(headers, rows);
       const html = `<!DOCTYPE html><html><head><meta charset="utf-8"></head><body><h2>${escapeHtml(sheetTitle)}</h2>${table}</body></html>`;
@@ -2217,12 +3043,14 @@
         showToast("เบราว์เซอร์บล็อกหน้าต่างพิมพ์ กรุณาอนุญาต Pop-up", "error");
         return;
       }
-      w.document.write(`<!DOCTYPE html><html lang="th"><head><meta charset="utf-8"><title>${escapeHtml(title)}</title><style>body{font-family:Tahoma,Arial,sans-serif;padding:24px;color:#0f172a}h1{font-size:22px;margin:0 0 8px}p{margin:0 0 16px;color:#475569}table{width:100%;border-collapse:collapse;font-size:12px}th{background:#e2e8f0;text-align:left}th,td{border:1px solid #cbd5e1;padding:8px;vertical-align:top}.meta{font-size:12px;color:#64748b;margin-bottom:16px}@media print{button{display:none}}</style></head><body><button onclick="window.print()" style="padding:10px 16px;margin-bottom:16px;border:0;border-radius:10px;background:#2563eb;color:white;font-weight:bold;cursor:pointer">พิมพ์รายงาน</button><h1>${escapeHtml(title)}</h1><div class="meta">วันที่ออกรายงาน: ${new Date().toLocaleString("th-TH")}</div>${content}</body></html>`);
+      const header = `${escapeHtml(appSettings.reportHeader || "รายงานระบบจัดการสต๊อก")} ${appSettings.organization ? "<br><span>" + escapeHtml(appSettings.organization) + "</span>" : ""}`;
+      w.document.write(`<!DOCTYPE html><html lang="th"><head><meta charset="utf-8"><title>${escapeHtml(title)}</title><style>body{font-family:Tahoma,Arial,sans-serif;padding:24px;color:#0f172a}h1{font-size:22px;margin:0 0 8px}h2{font-size:16px;margin:0 0 4px;color:#334155}h2 span{font-size:13px;color:#64748b;font-weight:normal}p{margin:0 0 16px;color:#475569}table{width:100%;border-collapse:collapse;font-size:12px}th{background:#e2e8f0;text-align:left}th,td{border:1px solid #cbd5e1;padding:8px;vertical-align:top}.meta{font-size:12px;color:#64748b;margin-bottom:16px}.signature{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:40px}.signbox{text-align:center;font-size:12px;color:#334155}.line{border-bottom:1px solid #334155;height:36px;margin-bottom:8px}@media print{button{display:none}}</style></head><body><button onclick="window.print()" style="padding:10px 16px;margin-bottom:16px;border:0;border-radius:10px;background:#2563eb;color:white;font-weight:bold;cursor:pointer">พิมพ์รายงาน</button><h2>${header}</h2><h1>${escapeHtml(title)}</h1><div class="meta">ปีการใช้งาน: ${escapeHtml(appSettings.currentYear || "-")} | วันที่ออกรายงาน: ${new Date().toLocaleString("th-TH")}</div>${content}</body></html>`);
       w.document.close();
       setTimeout(() => w.focus(), 200);
     }
 
     function stockStatusText(item) {
+      if (item?.archived) return "ปิดใช้งาน";
       const qty = number(item.quantity);
       const min = number(item.minLevel);
       if (qty <= 0) return "หมดสต๊อก";
@@ -2272,14 +3100,14 @@
     };
 
     function updateSuggestionDatalists() {
-      setDatalistOptions("category-suggestions", inventoryData.map(item => item.category));
+      setDatalistOptions("category-suggestions", activeInventoryData().map(item => item.category));
       setDatalistOptions("unit-suggestions", [
-        "ชิ้น", "กล่อง", "แพ็ก", "ชุด", "ม้วน", "เส้น", "แผ่น", "ถุง", "คู่", "รีม", "ขวด", "แกลลอน", "กิโลกรัม", "เมตร",
-        ...inventoryData.map(item => item.unit)
+        ...String(appSettings.defaultUnits || DEFAULT_SETTINGS.defaultUnits).split(","),
+        ...activeInventoryData().map(item => item.unit)
       ]);
-      setDatalistOptions("location-suggestions", inventoryData.map(item => item.location));
+      setDatalistOptions("location-suggestions", activeInventoryData().map(item => item.location));
       setDatalistOptions("supplier-suggestions", [
-        ...inventoryData.map(item => item.supplierName),
+        ...activeInventoryData().map(item => item.supplierName),
         ...lotsData.map(lot => lot.supplierName)
       ]);
       setDatalistOptions("actor-suggestions", [
@@ -2433,6 +3261,9 @@ function getActorName() {
         in: "รับเข้า",
         out: "เบิกออก",
         create: "สร้างสินค้า",
+        adjust: "ปรับยอด/ตรวจนับ",
+        archive: "ปิดใช้งานสินค้า",
+        restore: "กู้คืนสินค้า",
         delete: "ลบสินค้า"
       };
       return map[type] || "รายการ";
@@ -2443,6 +3274,9 @@ function getActorName() {
         in: "fa-arrow-down",
         out: "fa-arrow-up",
         create: "fa-plus",
+        adjust: "fa-clipboard-check",
+        archive: "fa-box-archive",
+        restore: "fa-rotate-left",
         delete: "fa-trash-can"
       };
       return map[type] || "fa-clock";
@@ -2453,6 +3287,9 @@ function getActorName() {
         in: "bg-emerald-50 text-emerald-700 border border-emerald-100",
         out: "bg-rose-50 text-rose-700 border border-rose-100",
         create: "bg-blue-50 text-blue-700 border border-blue-100",
+        adjust: "bg-indigo-50 text-indigo-700 border border-indigo-100",
+        archive: "bg-slate-100 text-slate-700 border border-slate-200",
+        restore: "bg-blue-50 text-blue-700 border border-blue-100",
         delete: "bg-slate-100 text-slate-700 border border-slate-200"
       };
       return map[type] || "bg-slate-100 text-slate-700";
@@ -2465,6 +3302,9 @@ function getActorName() {
         in: "bg-emerald-50 text-emerald-700 border border-emerald-100",
         out: "bg-rose-50 text-rose-700 border border-rose-100",
         create: "bg-blue-50 text-blue-700 border border-blue-100",
+        adjust: "bg-indigo-50 text-indigo-700 border border-indigo-100",
+        archive: "bg-slate-100 text-slate-700 border border-slate-200",
+        restore: "bg-blue-50 text-blue-700 border border-blue-100",
         delete: "bg-slate-100 text-slate-700 border border-slate-200"
       };
       return map[type] || "bg-slate-100 text-slate-700 border border-slate-200";
