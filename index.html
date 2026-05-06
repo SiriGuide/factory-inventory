@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>FactoryStock Pro v11 - ระบบจัดการสต๊อกโรงงาน</title>
+  <title>FactoryStock Pro v12 - ระบบจัดการสต๊อกโรงงาน</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <style>
@@ -110,11 +110,17 @@
         <button onclick="switchView('receive')" id="nav-receive" class="nav-idle w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-left font-bold">
           <i class="fa-solid fa-truck-ramp-box w-5"></i> รับเข้าเป็นล็อต
         </button>
+        <button onclick="switchView('withdraw')" id="nav-withdraw" class="nav-idle w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-left font-bold">
+          <i class="fa-solid fa-file-signature w-5"></i> ใบเบิกหลายรายการ
+        </button>
         <button onclick="switchView('lots')" id="nav-lots" class="nav-idle w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-left font-bold">
           <i class="fa-solid fa-barcode w-5"></i> ตรวจสอบล็อต
         </button>
         <button onclick="switchView('history')" id="nav-history" class="nav-idle w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-left font-bold">
           <i class="fa-solid fa-clock-rotate-left w-5"></i> ประวัติรายการ
+        </button>
+        <button onclick="switchView('reports')" id="nav-reports" class="nav-idle w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-left font-bold">
+          <i class="fa-solid fa-chart-line w-5"></i> รายงานการใช้ของ
         </button>
         <button onclick="switchView('yearend')" id="nav-yearend" class="nav-idle w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-left font-bold">
           <i class="fa-solid fa-shield-halved w-5"></i> สำรอง/ปิดปี
@@ -154,8 +160,10 @@
               <option value="dashboard">ภาพรวมระบบ</option>
               <option value="inventory">คลังสินค้า</option>
               <option value="receive">รับเข้าเป็นล็อต</option>
+              <option value="withdraw">ใบเบิกหลายรายการ</option>
               <option value="lots">ตรวจสอบล็อต</option>
               <option value="history">ประวัติรายการ</option>
+              <option value="reports">รายงานการใช้ของ</option>
               <option value="yearend">สำรอง/ปิดปี</option>
               <option value="settings">ตั้งค่าระบบ</option>
             </select>
@@ -175,6 +183,17 @@
       <section id="view-dashboard" class="flex-1 p-4 sm:p-6 lg:p-8">
         <div class="max-w-7xl mx-auto space-y-6">
           <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6" id="dashboard-stats"></div>
+
+          <div id="favorite-quick-panel" class="bg-white rounded-3xl soft-card border border-slate-200 p-5 sm:p-6 hidden-view">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+              <div>
+                <h3 class="text-lg font-black text-slate-950 flex items-center gap-2"><i class="fa-solid fa-star text-amber-500"></i> รายการโปรด / เบิกด่วน</h3>
+                <p class="text-sm text-slate-500 mt-1">ปักหมุดสินค้าที่เบิกบ่อย แล้วกดเพิ่มเข้าใบเบิกหลายรายการได้ทันที</p>
+              </div>
+              <button onclick="switchView('withdraw')" class="px-4 py-2 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-black text-sm"><i class="fa-solid fa-file-signature"></i> เปิดใบเบิก</button>
+            </div>
+            <div id="favorite-quick-list" class="flex gap-3 overflow-x-auto pb-1"></div>
+          </div>
 
           <div class="grid grid-cols-1 xl:grid-cols-5 gap-6">
             <div class="xl:col-span-3 bg-white rounded-3xl soft-card border border-slate-200 overflow-hidden">
@@ -331,6 +350,77 @@
         </div>
       </section>
 
+      <!-- Batch Withdraw -->
+      <section id="view-withdraw" class="hidden-view flex-1 p-4 sm:p-6 lg:p-8">
+        <div class="max-w-6xl mx-auto space-y-5">
+          <div class="bg-white rounded-3xl soft-card border border-slate-200 overflow-hidden">
+            <div class="p-5 sm:p-6 border-b border-slate-100 flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+              <div>
+                <h3 class="text-xl font-black text-slate-950 flex items-center gap-2"><i class="fa-solid fa-file-signature text-rose-600"></i> ใบเบิกหลายรายการ</h3>
+                <p class="text-sm text-slate-500 mt-1">เบิกสินค้าหลายรายการในเอกสารเดียว ระบบจะหักสต๊อกและบันทึกประวัติด้วยเลขเอกสารเดียวกัน</p>
+              </div>
+              <div class="flex flex-col sm:flex-row gap-3">
+                <button onclick="fillWithdrawDocCode()" class="px-4 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-black"><i class="fa-solid fa-wand-magic-sparkles"></i> สร้างเลขเอกสาร</button>
+                <button onclick="clearWithdrawForm()" class="px-4 py-3 rounded-2xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-100 font-black"><i class="fa-solid fa-rotate-left"></i> ล้างฟอร์ม</button>
+              </div>
+            </div>
+
+            <div class="p-5 sm:p-6 space-y-5">
+              <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 rounded-3xl bg-slate-50 border border-slate-200 p-4">
+                <div>
+                  <label class="text-sm font-black text-slate-700">เลขที่ใบเบิก</label>
+                  <input id="withdraw-doc-number" type="text" placeholder="เว้นว่างเพื่อให้ระบบสร้างอัตโนมัติ" class="mt-2 w-full p-3 rounded-2xl border border-slate-200 bg-white focus:ring-4 focus:ring-rose-500/10 focus:border-rose-500 outline-none font-semibold" />
+                </div>
+                <div>
+                  <label class="text-sm font-black text-slate-700">ผู้เบิก / ผู้รับของ *</label>
+                  <input id="withdraw-requester" type="text" list="actor-suggestions" data-actor-input oninput="rememberActorName(this.value)" placeholder="ชื่อผู้เบิก" class="mt-2 w-full p-3 rounded-2xl border border-slate-200 bg-white focus:ring-4 focus:ring-rose-500/10 focus:border-rose-500 outline-none font-semibold" />
+                </div>
+                <div>
+                  <label class="text-sm font-black text-slate-700">แผนก / โครงการ / งาน *</label>
+                  <input id="withdraw-department" type="text" list="department-suggestions" placeholder="เช่น ซ่อมบำรุง / ไลน์ผลิต A / งานติดตั้ง" class="mt-2 w-full p-3 rounded-2xl border border-slate-200 bg-white focus:ring-4 focus:ring-rose-500/10 focus:border-rose-500 outline-none font-semibold" />
+                </div>
+                <div class="lg:col-span-2">
+                  <label class="text-sm font-black text-slate-700">เบิกไปใช้ทำอะไร *</label>
+                  <input id="withdraw-purpose" type="text" placeholder="เช่น ซ่อมเครื่องจักร / ใช้งานแพ็กกิ้ง / งานประจำเดือน" class="mt-2 w-full p-3 rounded-2xl border border-slate-200 bg-white focus:ring-4 focus:ring-rose-500/10 focus:border-rose-500 outline-none font-semibold" />
+                </div>
+                <div>
+                  <label class="text-sm font-black text-slate-700">ผู้ทำรายการ</label>
+                  <input id="withdraw-actor" type="text" list="actor-suggestions" data-actor-input oninput="rememberActorName(this.value)" placeholder="ชื่อผู้บันทึก" class="mt-2 w-full p-3 rounded-2xl border border-slate-200 bg-white focus:ring-4 focus:ring-rose-500/10 focus:border-rose-500 outline-none font-semibold" />
+                </div>
+              </div>
+
+              <div id="withdraw-favorite-list" class="hidden-view rounded-3xl border border-amber-100 bg-amber-50 p-4">
+                <div class="font-black text-amber-800 mb-3"><i class="fa-solid fa-star"></i> สินค้าโปรด กดเพื่อเพิ่มเข้าใบเบิก</div>
+                <div id="withdraw-favorite-buttons" class="flex gap-2 overflow-x-auto pb-1"></div>
+              </div>
+
+              <div class="overflow-x-auto rounded-3xl border border-slate-200">
+                <table class="w-full text-left min-w-[760px]">
+                  <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                    <tr>
+                      <th class="px-5 py-4 font-black">เลือกสินค้า</th>
+                      <th class="px-5 py-4 font-black text-center w-44">จำนวนเบิก</th>
+                      <th class="px-5 py-4 font-black text-right w-36">คงเหลือ</th>
+                      <th class="px-5 py-4 font-black text-center w-20">ลบ</th>
+                    </tr>
+                  </thead>
+                  <tbody id="withdraw-table-body" class="divide-y divide-slate-100"></tbody>
+                </table>
+              </div>
+
+              <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <button type="button" onclick="addWithdrawRow()" class="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-black transition-all">
+                  <i class="fa-solid fa-plus"></i> เพิ่มรายการในใบเบิก
+                </button>
+                <button type="button" id="btn-submit-withdraw" onclick="submitWithdrawalBatch()" class="px-6 py-3 rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-black shadow-lg shadow-rose-500/20 transition-all">
+                  <i class="fa-solid fa-check"></i> บันทึกใบเบิกหลายรายการ
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <!-- Lots -->
       <section id="view-lots" class="hidden-view flex-1 p-4 sm:p-6 lg:p-8">
         <div class="max-w-7xl mx-auto bg-white rounded-3xl soft-card border border-slate-200 overflow-hidden">
@@ -419,6 +509,42 @@
               </thead>
               <tbody id="history-table" class="divide-y divide-slate-100"></tbody>
             </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- Usage Reports -->
+      <section id="view-reports" class="hidden-view flex-1 p-4 sm:p-6 lg:p-8">
+        <div class="max-w-7xl mx-auto space-y-5">
+          <div class="bg-white rounded-3xl soft-card border border-slate-200 p-5 sm:p-6">
+            <div class="flex flex-col xl:flex-row xl:items-start xl:justify-between gap-4">
+              <div>
+                <h3 class="text-xl font-black text-slate-950 flex items-center gap-2"><i class="fa-solid fa-chart-line text-blue-600"></i> รายงานการใช้ของ</h3>
+                <p class="text-sm text-slate-500 mt-1">สรุปการเบิกออกตามเดือน สินค้าที่ใช้เยอะ แผนก/โครงการที่ใช้เยอะ และมูลค่าโดยประมาณ</p>
+              </div>
+              <div class="flex flex-col sm:flex-row gap-3">
+                <input type="month" id="report-month" onchange="renderUsageReports()" class="px-4 py-3 rounded-2xl border border-slate-200 bg-slate-50 focus:bg-white focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 font-bold" />
+                <button onclick="exportUsageReport()" class="px-5 py-3 rounded-2xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-black border border-emerald-100"><i class="fa-solid fa-file-excel"></i> Export</button>
+                <button onclick="printUsageReport()" class="px-5 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-black"><i class="fa-solid fa-print"></i> พิมพ์รายงาน</button>
+              </div>
+            </div>
+          </div>
+
+          <div id="usage-report-stats" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6"></div>
+
+          <div class="grid grid-cols-1 xl:grid-cols-2 gap-5">
+            <div class="bg-white rounded-3xl soft-card border border-slate-200 overflow-hidden">
+              <div class="p-5 border-b border-slate-100"><h4 class="font-black text-slate-950"><i class="fa-solid fa-box-open text-rose-600"></i> สินค้าที่เบิกเยอะที่สุด</h4></div>
+              <div class="overflow-x-auto">
+                <table class="w-full text-left min-w-[620px]"><thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500"><tr><th class="px-5 py-4 font-black">สินค้า</th><th class="px-5 py-4 font-black text-right">จำนวนเบิก</th><th class="px-5 py-4 font-black text-right">มูลค่าโดยประมาณ</th></tr></thead><tbody id="report-top-items" class="divide-y divide-slate-100"></tbody></table>
+              </div>
+            </div>
+            <div class="bg-white rounded-3xl soft-card border border-slate-200 overflow-hidden">
+              <div class="p-5 border-b border-slate-100"><h4 class="font-black text-slate-950"><i class="fa-solid fa-building-user text-blue-600"></i> แผนก/โครงการที่เบิกเยอะที่สุด</h4></div>
+              <div class="overflow-x-auto">
+                <table class="w-full text-left min-w-[560px]"><thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500"><tr><th class="px-5 py-4 font-black">แผนก / โครงการ</th><th class="px-5 py-4 font-black text-right">จำนวนรายการ</th><th class="px-5 py-4 font-black text-right">มูลค่าโดยประมาณ</th></tr></thead><tbody id="report-top-departments" class="divide-y divide-slate-100"></tbody></table>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -587,21 +713,27 @@
 
     <!-- Mobile Bottom Navigation -->
     <nav class="mobile-bottom-nav lg:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-xl border-t border-slate-200 px-3 pt-2 pb-[calc(env(safe-area-inset-bottom)+.5rem)]">
-      <div class="grid grid-cols-7 gap-1 max-w-2xl mx-auto">
+      <div class="grid grid-cols-9 gap-1 max-w-3xl mx-auto">
         <button onclick="switchView('dashboard')" id="bottom-nav-dashboard" class="mobile-tab-active flex flex-col items-center justify-center gap-1 rounded-2xl py-2 text-[10px] sm:text-[11px] font-black transition-all">
           <i class="fa-solid fa-chart-pie text-lg"></i><span>ภาพรวม</span>
         </button>
         <button onclick="switchView('inventory')" id="bottom-nav-inventory" class="mobile-tab-idle flex flex-col items-center justify-center gap-1 rounded-2xl py-2 text-[10px] sm:text-[11px] font-black transition-all">
           <i class="fa-solid fa-list-check text-lg"></i><span>คลัง</span>
         </button>
-        <button onclick="switchView('receive')" id="bottom-nav-receive" class="mobile-tab-idle flex flex-col items-center justify-center gap-1 rounded-2xl py-2 text-[10px] sm:text-[11px] font-black transition-all">
+        <button onclick="switchView('receive')" id="bottom-nav-receive" class="mobile-tab-idle flex flex-col items-center justify-center gap-1 rounded-2xl py-2 text-[9px] sm:text-[11px] font-black transition-all">
           <i class="fa-solid fa-truck-ramp-box text-lg"></i><span>รับล็อต</span>
         </button>
-        <button onclick="switchView('lots')" id="bottom-nav-lots" class="mobile-tab-idle flex flex-col items-center justify-center gap-1 rounded-2xl py-2 text-[10px] sm:text-[11px] font-black transition-all">
+        <button onclick="switchView('withdraw')" id="bottom-nav-withdraw" class="mobile-tab-idle flex flex-col items-center justify-center gap-1 rounded-2xl py-2 text-[9px] sm:text-[11px] font-black transition-all">
+          <i class="fa-solid fa-file-signature text-lg"></i><span>ใบเบิก</span>
+        </button>
+        <button onclick="switchView('lots')" id="bottom-nav-lots" class="mobile-tab-idle flex flex-col items-center justify-center gap-1 rounded-2xl py-2 text-[9px] sm:text-[11px] font-black transition-all">
           <i class="fa-solid fa-barcode text-lg"></i><span>ล็อต</span>
         </button>
-        <button onclick="switchView('history')" id="bottom-nav-history" class="mobile-tab-idle flex flex-col items-center justify-center gap-1 rounded-2xl py-2 text-[10px] sm:text-[11px] font-black transition-all">
+        <button onclick="switchView('history')" id="bottom-nav-history" class="mobile-tab-idle flex flex-col items-center justify-center gap-1 rounded-2xl py-2 text-[9px] sm:text-[11px] font-black transition-all">
           <i class="fa-solid fa-clock-rotate-left text-lg"></i><span>ประวัติ</span>
+        </button>
+        <button onclick="switchView('reports')" id="bottom-nav-reports" class="mobile-tab-idle flex flex-col items-center justify-center gap-1 rounded-2xl py-2 text-[9px] sm:text-[11px] font-black transition-all">
+          <i class="fa-solid fa-chart-line text-lg"></i><span>รายงาน</span>
         </button>
         <button onclick="switchView('yearend')" id="bottom-nav-yearend" class="mobile-tab-idle flex flex-col items-center justify-center gap-1 rounded-2xl py-2 text-[9px] sm:text-[11px] font-black transition-all">
           <i class="fa-solid fa-shield-halved text-lg"></i><span>ปิดปี</span>
@@ -631,6 +763,7 @@
         <datalist id="location-suggestions"></datalist>
         <datalist id="supplier-suggestions"></datalist>
         <datalist id="actor-suggestions"></datalist>
+        <datalist id="department-suggestions"></datalist>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
@@ -775,6 +908,12 @@
           <label id="stock-actor-label" class="text-sm font-black text-slate-700">ผู้ทำรายการ</label>
           <input type="text" id="stock-actor-name" list="actor-suggestions" data-actor-input oninput="rememberActorName(this.value)" placeholder="ชื่อผู้ทำรายการ" class="mt-2 w-full p-3 rounded-2xl border border-slate-200 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none font-semibold" />
           <p id="stock-actor-helper" class="mt-2 text-xs text-slate-500 font-bold hidden-view"></p>
+        </div>
+
+        <div>
+          <label id="stock-department-label" class="text-sm font-black text-slate-700">แผนก / โครงการ / งาน</label>
+          <input type="text" id="stock-department" list="department-suggestions" placeholder="เช่น ซ่อมบำรุง / ไลน์ผลิต A" class="mt-2 w-full p-3 rounded-2xl border border-slate-200 focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none font-semibold" />
+          <p id="stock-department-helper" class="mt-2 text-xs text-slate-500 font-bold hidden-view"></p>
         </div>
 
         <div class="pt-2 flex flex-col sm:flex-row justify-end gap-3">
@@ -939,6 +1078,7 @@
     let lotsData = [];
     let currentUser = { uid: "local-passcode-user" };
     let lotItems = [{ itemId: "", quantity: "" }];
+    let withdrawItems = [{ itemId: "", quantity: "" }];
     let currentLotDetailId = null;
     let currentQrItemId = null;
     let currentDetailItemId = null;
@@ -1095,6 +1235,8 @@
         renderInventoryTable();
         applySkuFromUrlOnce();
         renderLotTable();
+        renderWithdrawTable();
+        renderFavoritesQuick();
         updateSuggestionDatalists();
         updateYearEndCounts();
       }, (error) => {
@@ -1112,6 +1254,8 @@
         historyData = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
         renderLatestHistory();
         renderHistoryTable();
+        renderUsageReports();
+        renderFavoritesQuick();
         updateSuggestionDatalists();
         updateYearEndCounts();
       }, (error) => {
@@ -1197,6 +1341,7 @@
         }).join("");
       }
       renderLatestHistory();
+      renderFavoritesQuick();
     };
 
     function statCard(title, value, suffix, icon, color) {
@@ -1268,6 +1413,7 @@
                 <button onclick="openStockModal('${item.id}', 'out')" ${qty <= 0 ? "disabled" : ""} class="col-span-1 py-3 rounded-2xl bg-rose-50 text-rose-700 border border-rose-100 font-black disabled:opacity-30"><i class="fa-solid fa-arrow-up"></i></button>
                 <button onclick="openAdjustModal('${item.id}')" class="col-span-1 py-3 rounded-2xl bg-indigo-50 text-indigo-700 border border-indigo-100 font-black"><i class="fa-solid fa-clipboard-check"></i></button>
                 <button onclick="openQrModal('${item.id}')" class="col-span-1 py-3 rounded-2xl bg-slate-100 text-slate-700 font-black"><i class="fa-solid fa-qrcode"></i></button>
+                <button onclick="toggleFavorite('${item.id}')" class="col-span-1 py-3 rounded-2xl ${item.favorite ? 'bg-amber-50 text-amber-700' : 'bg-slate-100 text-slate-700'} font-black"><i class="fa-solid fa-star"></i></button>
                 <button onclick="openItemModal('${item.id}')" class="col-span-1 py-3 rounded-2xl bg-slate-100 text-slate-700 font-black"><i class="fa-solid fa-pen"></i></button>
                 <button onclick="deleteItem('${item.id}')" class="col-span-1 py-3 rounded-2xl bg-slate-100 text-rose-700 font-black"><i class="fa-solid fa-box-archive"></i></button>
               `}
@@ -1320,6 +1466,7 @@
             <td class="px-6 py-4 text-right">
               <div class="flex items-center justify-end gap-2">
                 <button onclick="openItemDetail('${item.id}')" class="w-10 h-10 rounded-2xl bg-blue-50 hover:bg-blue-100 text-blue-700 transition-all" title="รายละเอียด"><i class="fa-solid fa-eye"></i></button>
+                <button onclick="toggleFavorite('${item.id}')" class="w-10 h-10 rounded-2xl ${item.favorite ? 'bg-amber-50 text-amber-600' : 'bg-slate-100 text-slate-400'} hover:bg-amber-50 hover:text-amber-600 transition-all" title="ปักหมุดรายการโปรด"><i class="fa-solid fa-star"></i></button>
                 <button onclick="openQrModal('${item.id}')" class="w-10 h-10 rounded-2xl bg-slate-100 hover:bg-blue-50 text-slate-500 hover:text-blue-700 transition-all" title="QR Code"><i class="fa-solid fa-qrcode"></i></button>
                 <button onclick="openItemModal('${item.id}')" class="w-10 h-10 rounded-2xl bg-slate-100 hover:bg-blue-50 text-slate-500 hover:text-blue-700 transition-all" title="แก้ไข"><i class="fa-solid fa-pen"></i></button>
                 ${item.archived ? "" : `<button onclick="deleteItem('${item.id}')" class="w-10 h-10 rounded-2xl bg-slate-100 hover:bg-rose-50 text-slate-500 hover:text-rose-700 transition-all" title="ปิดใช้งาน"><i class="fa-solid fa-box-archive"></i></button>`}
@@ -1387,6 +1534,7 @@
             ${item.location ? `<div><i class="fa-solid fa-location-dot text-blue-500 mr-1"></i>${escapeHtml(item.location)}</div>` : ""}
             ${item.docNumber ? `<div><i class="fa-solid fa-file-lines text-blue-500 mr-1"></i>${escapeHtml(item.docNumber)}</div>` : ""}
             ${item.lotCode ? `<div><i class="fa-solid fa-barcode text-blue-500 mr-1"></i>${escapeHtml(item.lotCode)}</div>` : ""}
+            ${item.departmentName ? `<div><i class="fa-solid fa-building-user text-blue-500 mr-1"></i><span class="font-black">แผนก/โครงการ:</span> ${escapeHtml(item.departmentName)}</div>` : ""}
             <div><i class="fa-solid fa-note-sticky text-slate-400 mr-1"></i><span class="font-black">${escapeHtml(historyNoteLabel(item))}:</span> ${escapeHtml(historyNoteText(item))}</div>
             <div><i class="fa-solid fa-user text-slate-400 mr-1"></i><span class="font-black">${escapeHtml(historyPersonLabel(item))}:</span> ${escapeHtml(historyPersonText(item))}</div>
           </div>
@@ -1421,6 +1569,7 @@
           <td class="px-6 py-4">
             ${item.docNumber ? `<div class="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-slate-100 text-slate-700 border border-slate-200 text-xs font-black mb-2 mr-1"><i class="fa-solid fa-file-lines"></i> ${escapeHtml(item.docNumber)}</div>` : ""}
             ${item.lotCode ? `<div class="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-100 text-xs font-black mb-2"><i class="fa-solid fa-barcode"></i> ${escapeHtml(item.lotCode)}</div>` : ""}
+            ${item.departmentName ? `<div class="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-100 text-xs font-black mb-2 mr-1"><i class="fa-solid fa-building-user"></i> ${escapeHtml(item.departmentName)}</div>` : ""}
             <div class="text-xs text-slate-400 font-black mb-1">${escapeHtml(historyNoteLabel(item))}</div>
             <div class="font-bold text-slate-700">${escapeHtml(historyNoteText(item))}</div>
             <div class="text-xs text-slate-500 mt-2"><i class="fa-solid fa-user"></i> <span class="font-black">${escapeHtml(historyPersonLabel(item))}:</span> ${escapeHtml(historyPersonText(item))}</div>
@@ -1552,7 +1701,7 @@
     // Navigation
     // =========================
     window.switchView = function(viewId) {
-      ["dashboard", "inventory", "receive", "lots", "history", "yearend", "settings"].forEach(id => {
+      ["dashboard", "inventory", "receive", "withdraw", "lots", "history", "reports", "yearend", "settings"].forEach(id => {
         document.getElementById(`view-${id}`).classList.toggle("hidden-view", id !== viewId);
         const nav = document.getElementById(`nav-${id}`);
         if (nav) {
@@ -1568,8 +1717,10 @@
         dashboard: "ภาพรวมระบบ",
         inventory: "จัดการคลังสินค้า",
         receive: "รับเข้าสินค้าเป็นล็อต",
+        withdraw: "ใบเบิกหลายรายการ",
         lots: "ตรวจสอบล็อตรับเข้า",
         history: "ประวัติรายการ",
+        reports: "รายงานการใช้ของ",
         yearend: "สำรองข้อมูล / เริ่มปีใหม่",
         settings: "ตั้งค่าระบบ"
       };
@@ -1577,6 +1728,8 @@
       const mobileNav = document.getElementById("mobile-nav");
       if (mobileNav) mobileNav.value = viewId;
       if (viewId === "settings") renderSettingsForm();
+      if (viewId === "withdraw") renderWithdrawTable();
+      if (viewId === "reports") renderUsageReports();
     };
 
     // =========================
@@ -1661,6 +1814,12 @@
       noteInput.classList.remove("border-rose-300", "bg-rose-50");
       actorInput.classList.remove("border-rose-300", "bg-rose-50");
       actorInput.value = getActorName();
+      const deptInput = document.getElementById("stock-department");
+      const deptLabel = document.getElementById("stock-department-label");
+      const deptHelper = document.getElementById("stock-department-helper");
+      if (deptInput) { deptInput.value = ""; deptInput.required = false; deptInput.classList.remove("border-rose-300", "bg-rose-50"); }
+      if (deptHelper) deptHelper.classList.add("hidden-view");
+      if (deptLabel) deptLabel.innerText = "แผนก / โครงการ / งาน";
 
       const header = document.getElementById("stock-modal-header");
       const iconBg = document.getElementById("stock-icon-bg");
@@ -1678,6 +1837,8 @@
         noteInput.value = "รับเข้าสต๊อก";
         actorLabel.innerText = "ผู้ทำรายการ / ผู้รับเข้า";
         actorInput.placeholder = "ชื่อผู้ทำรายการ";
+        if (deptLabel) deptLabel.innerText = "แผนก / โครงการ / งาน";
+        if (deptInput) deptInput.placeholder = "เช่น คลังกลาง / เติมสต๊อก";
         header.className = "px-6 py-5 flex items-center gap-4 border-b flex-shrink-0 bg-emerald-50 border-emerald-100";
         iconBg.className = "w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center";
         icon.className = "fa-solid fa-arrow-down";
@@ -1694,6 +1855,9 @@
         actorLabel.innerText = "ผู้เบิก / ผู้รับของ *";
         actorInput.placeholder = "ชื่อผู้เบิก หรือแผนกที่รับของ";
         actorInput.required = true;
+        if (deptLabel) deptLabel.innerText = "แผนก / โครงการ / งาน *";
+        if (deptInput) { deptInput.required = true; deptInput.placeholder = "เช่น ซ่อมบำรุง / ไลน์ผลิต A / งานติดตั้ง"; }
+        if (deptHelper) { deptHelper.innerHTML = '<i class="fa-solid fa-circle-info"></i> ใช้สำหรับสรุปรายงานว่าแผนก/โครงการไหนเบิกของ'; deptHelper.classList.remove("hidden-view"); }
         noteHelper.innerHTML = '<i class="fa-solid fa-circle-info"></i> ช่องนี้จะถูกบันทึกในประวัติว่า “เบิกไปใช้ทำอะไร”';
         actorHelper.innerHTML = '<i class="fa-solid fa-circle-info"></i> ช่องนี้จะถูกบันทึกในประวัติว่า “ใครเป็นคนเบิก”';
         noteHelper.classList.remove("hidden-view");
@@ -1815,7 +1979,8 @@
       currentQrItemId = id;
       const url = new URL(location.href);
       url.searchParams.set("sku", item.sku || "");
-      url.hash = "inventory";
+      url.searchParams.set("view", "detail");
+      url.hash = "item-detail";
       document.getElementById("qr-title").innerText = `QR: ${item.sku || "-"}`;
       document.getElementById("qr-subtitle").innerText = item.name || "สแกนเพื่อค้นหาสินค้า";
       document.getElementById("qr-data").innerText = url.toString();
@@ -1837,14 +2002,289 @@
 
     function applySkuFromUrlOnce() {
       if (urlSkuApplied) return;
-      const sku = new URLSearchParams(location.search).get("sku");
+      const params = new URLSearchParams(location.search);
+      const sku = params.get("sku");
       if (!sku) return;
       const input = document.getElementById("search-input");
       if (input) input.value = sku;
       urlSkuApplied = true;
       switchView("inventory");
       renderInventoryTable();
+      const matched = inventoryData.find(item => cleanSku(item.sku) === cleanSku(sku));
+      if (matched && (params.get("view") === "detail" || location.hash === "#item-detail")) {
+        setTimeout(() => openItemDetail(matched.id), 150);
+      }
     }
+
+
+    // =========================
+    // Batch Withdrawal / Favorites / Reports
+    // =========================
+    function itemOptions(selectedId = "") {
+      let options = '<option value="">-- เลือกสินค้า --</option>';
+      activeInventoryData().forEach(item => {
+        const selected = item.id === selectedId ? "selected" : "";
+        options += `<option value="${item.id}" ${selected}>${escapeHtml(item.sku || "-")} - ${escapeHtml(item.name || "-")} (คงเหลือ: ${formatNumber(number(item.quantity))} ${escapeHtml(item.unit || "")})</option>`;
+      });
+      return options;
+    }
+
+    window.renderWithdrawTable = function() {
+      const tbody = document.getElementById("withdraw-table-body");
+      if (!tbody) return;
+      if (!document.getElementById("withdraw-doc-number")?.value) document.getElementById("withdraw-doc-number").value = generateDocumentNumber("OUT");
+      if (!document.getElementById("withdraw-actor")?.value) document.getElementById("withdraw-actor").value = getActorName();
+      if (!document.getElementById("withdraw-requester")?.value) document.getElementById("withdraw-requester").value = getActorName();
+
+      tbody.innerHTML = withdrawItems.map((row, index) => {
+        const item = inventoryData.find(i => i.id === row.itemId);
+        const remaining = item ? `${formatNumber(number(item.quantity))} ${escapeHtml(item.unit || "")}` : "-";
+        return `<tr class="hover:bg-slate-50">
+          <td class="px-5 py-4"><select onchange="updateWithdrawRow(${index}, 'itemId', this.value)" class="w-full p-3 rounded-2xl border border-slate-200 bg-white focus:ring-4 focus:ring-rose-500/10 focus:border-rose-500 outline-none font-semibold">${itemOptions(row.itemId)}</select></td>
+          <td class="px-5 py-4"><input type="number" min="1" step="0.01" value="${escapeHtml(row.quantity || "")}" oninput="updateWithdrawRow(${index}, 'quantity', this.value)" placeholder="จำนวน" class="w-full p-3 rounded-2xl border border-slate-200 text-center font-black focus:ring-4 focus:ring-rose-500/10 focus:border-rose-500 outline-none" /></td>
+          <td class="px-5 py-4 text-right font-black text-slate-700">${remaining}</td>
+          <td class="px-5 py-4 text-center"><button type="button" onclick="removeWithdrawRow(${index})" class="w-10 h-10 rounded-2xl bg-rose-50 hover:bg-rose-100 text-rose-700"><i class="fa-solid fa-xmark"></i></button></td>
+        </tr>`;
+      }).join("");
+      renderWithdrawFavorites();
+    };
+
+    window.addWithdrawRow = function(itemId = "") {
+      withdrawItems.push({ itemId, quantity: "" });
+      renderWithdrawTable();
+    };
+
+    window.removeWithdrawRow = function(index) {
+      if (withdrawItems.length <= 1) { withdrawItems = [{ itemId: "", quantity: "" }]; }
+      else withdrawItems.splice(index, 1);
+      renderWithdrawTable();
+    };
+
+    window.updateWithdrawRow = function(index, field, value) {
+      withdrawItems[index][field] = value;
+      if (field === "itemId") renderWithdrawTable();
+    };
+
+    window.addFavoriteToWithdraw = function(itemId) {
+      const empty = withdrawItems.find(r => !r.itemId);
+      if (empty) empty.itemId = itemId;
+      else withdrawItems.push({ itemId, quantity: "" });
+      switchView("withdraw");
+      renderWithdrawTable();
+      showToast("เพิ่มสินค้าเข้าใบเบิกแล้ว", "success");
+    };
+
+    window.fillWithdrawDocCode = function() {
+      const el = document.getElementById("withdraw-doc-number");
+      if (el) el.value = generateDocumentNumber("OUT");
+    };
+
+    window.clearWithdrawForm = function() {
+      withdrawItems = [{ itemId: "", quantity: "" }];
+      ["withdraw-doc-number", "withdraw-requester", "withdraw-department", "withdraw-purpose"].forEach(id => { const el = document.getElementById(id); if (el) el.value = ""; });
+      const actor = document.getElementById("withdraw-actor");
+      if (actor) actor.value = getActorName();
+      renderWithdrawTable();
+    };
+
+    window.submitWithdrawalBatch = async function() {
+      if (!currentUser) return;
+      const docNumber = cleanText(document.getElementById("withdraw-doc-number")?.value) || generateDocumentNumber("OUT");
+      const requesterName = cleanText(document.getElementById("withdraw-requester")?.value);
+      const departmentName = cleanText(document.getElementById("withdraw-department")?.value);
+      const purpose = cleanText(document.getElementById("withdraw-purpose")?.value);
+      const actorName = cleanText(document.getElementById("withdraw-actor")?.value) || getActorName();
+      if (!requesterName) { showToast("กรุณาระบุผู้เบิก / ผู้รับของ", "error"); document.getElementById("withdraw-requester")?.focus(); return; }
+      if (!departmentName) { showToast("กรุณาระบุแผนก / โครงการ / งาน", "error"); document.getElementById("withdraw-department")?.focus(); return; }
+      if (!purpose) { showToast("กรุณาระบุว่าเบิกไปใช้ทำอะไร", "error"); document.getElementById("withdraw-purpose")?.focus(); return; }
+
+      const grouped = new Map();
+      withdrawItems.forEach(row => {
+        if (!row.itemId || number(row.quantity) <= 0) return;
+        grouped.set(row.itemId, (grouped.get(row.itemId) || 0) + number(row.quantity));
+      });
+      const rows = [...grouped.entries()].map(([itemId, quantity]) => ({ item: inventoryData.find(i => i.id === itemId), quantity })).filter(r => r.item);
+      if (rows.length === 0) { showToast("กรุณาเลือกสินค้าและใส่จำนวนอย่างน้อย 1 รายการ", "error"); return; }
+      const over = rows.find(r => r.quantity > number(r.item.quantity));
+      if (over) { showToast(`สินค้า ${over.item.sku || over.item.name} เบิกเกินยอดคงเหลือ`, "error"); return; }
+
+      setButtonBusy("btn-submit-withdraw", true, "กำลังบันทึก...");
+      try {
+        const batch = writeBatch(db);
+        const createdIso = new Date().toISOString();
+        const logs = [];
+        rows.forEach((row, idx) => {
+          const beforeQty = number(row.item.quantity);
+          const afterQty = beforeQty - number(row.quantity);
+          const itemRef = doc(db, "artifacts", appId, "public", "data", "inventory", row.item.id);
+          const logRef = doc(paths.transactions());
+          const log = buildLog("out", row.item, row.quantity, beforeQty, afterQty, purpose, requesterName, {
+            docNumber,
+            batchWithdrawal: true,
+            batchLineNo: idx + 1,
+            batchCount: rows.length,
+            withdrawerName: requesterName,
+            requesterName,
+            departmentName,
+            projectName: departmentName,
+            purpose,
+            recordedBy: actorName,
+            clientCreatedAt: createdIso
+          });
+          batch.update(itemRef, { quantity: afterQty, updatedAt: serverTimestamp() });
+          batch.set(logRef, log);
+          logs.push(log);
+        });
+        await batch.commit();
+        rememberActorName(requesterName);
+        rememberActorName(actorName);
+        showToast(`บันทึกใบเบิก ${docNumber} สำเร็จ (${rows.length} รายการ)`, "success");
+        clearWithdrawForm();
+        const shouldPrint = await confirmDialog({ title: "พิมพ์ใบเบิกหลายรายการ?", message: `บันทึกเอกสารเลขที่ ${docNumber} แล้ว ต้องการพิมพ์ใบเบิกตอนนี้ไหม`, okText: "พิมพ์" });
+        if (shouldPrint) printWithdrawalBatchDocument({ docNumber, requesterName, departmentName, purpose, actorName, logs, createdAt: createdIso });
+      } catch (error) {
+        console.error("Batch withdrawal error:", error);
+        showToast("บันทึกใบเบิกไม่สำเร็จ", "error");
+      } finally {
+        setButtonBusy("btn-submit-withdraw", false);
+      }
+    };
+
+    function printWithdrawalBatchDocument(data) {
+      const rows = data.logs.map(item => [item.sku || "-", item.name || "-", `${formatNumber(number(item.quantity))} ${item.unit || ""}`, formatNumber(item.beforeQty), formatNumber(item.afterQty), item.location || "-"]);
+      const table = buildHtmlTable(["SKU", "สินค้า", "จำนวนเบิก", "ก่อน", "หลัง", "ที่เก็บ"], rows);
+      const meta = `<p>เลขที่ใบเบิก: <b>${escapeHtml(data.docNumber)}</b> | วันที่: <b>${formatDate(data.createdAt)}</b></p><p>ผู้เบิก/ผู้รับของ: <b>${escapeHtml(data.requesterName)}</b> | แผนก/โครงการ: <b>${escapeHtml(data.departmentName)}</b> | ผู้บันทึก: <b>${escapeHtml(data.actorName)}</b></p><p>วัตถุประสงค์: <b>${escapeHtml(data.purpose)}</b></p>`;
+      const sign = `<div class="signature"><div class="signbox"><div class="line"></div>ผู้เบิก/ผู้รับของ</div><div class="signbox"><div class="line"></div>ผู้จ่ายของ</div><div class="signbox"><div class="line"></div>ผู้อนุมัติ</div></div>`;
+      openPrintWindow("ใบเบิกสินค้าแบบหลายรายการ", `${meta}${table}${sign}`);
+    }
+
+    window.toggleFavorite = async function(id) {
+      const item = inventoryData.find(i => i.id === id);
+      if (!item) return;
+      try {
+        await updateDoc(doc(db, "artifacts", appId, "public", "data", "inventory", id), { favorite: !item.favorite, updatedAt: serverTimestamp() });
+        showToast(!item.favorite ? "ปักหมุดเป็นรายการโปรดแล้ว" : "นำออกจากรายการโปรดแล้ว", "success");
+      } catch (error) {
+        console.error("Favorite update error:", error);
+        showToast("อัปเดตรายการโปรดไม่สำเร็จ", "error");
+      }
+    };
+
+    function favoriteItems() {
+      return activeInventoryData().filter(item => item.favorite).sort((a, b) => String(a.name || "").localeCompare(String(b.name || ""), "th"));
+    }
+
+    function renderFavoritesQuick() {
+      const items = favoriteItems();
+      const panel = document.getElementById("favorite-quick-panel");
+      const list = document.getElementById("favorite-quick-list");
+      if (panel && list) {
+        panel.classList.toggle("hidden-view", items.length === 0);
+        list.innerHTML = items.map(item => `<button onclick="addFavoriteToWithdraw('${item.id}')" class="min-w-[220px] text-left rounded-2xl bg-amber-50 hover:bg-amber-100 border border-amber-100 p-4 transition-all"><div class="font-mono text-xs font-black text-amber-700">${escapeHtml(item.sku || "-")}</div><div class="font-black text-slate-950 truncate mt-1">${escapeHtml(item.name || "-")}</div><div class="text-xs font-bold text-slate-500 mt-1">คงเหลือ ${formatNumber(number(item.quantity))} ${escapeHtml(item.unit || "")}</div></button>`).join("");
+      }
+      renderWithdrawFavorites();
+    }
+
+    function renderWithdrawFavorites() {
+      const items = favoriteItems();
+      const wrap = document.getElementById("withdraw-favorite-list");
+      const buttons = document.getElementById("withdraw-favorite-buttons");
+      if (!wrap || !buttons) return;
+      wrap.classList.toggle("hidden-view", items.length === 0);
+      buttons.innerHTML = items.map(item => `<button onclick="addFavoriteToWithdraw('${item.id}')" class="px-4 py-2 rounded-2xl bg-white hover:bg-amber-100 text-amber-800 border border-amber-200 font-black whitespace-nowrap"><i class="fa-solid fa-plus"></i> ${escapeHtml(item.sku || "-")} ${escapeHtml(item.name || "-")}</button>`).join("");
+    }
+
+    function reportMonthValue() {
+      const el = document.getElementById("report-month");
+      if (el && !el.value) {
+        const d = new Date();
+        el.value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      }
+      return el?.value || "";
+    }
+
+    function getReportOutRows() {
+      const month = reportMonthValue();
+      return historyData.filter(h => h.type === "out").filter(h => {
+        if (!month) return true;
+        const d = toDateObject(h.createdAt) || toDateObject(h.clientCreatedAt);
+        if (!d) return false;
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}` === month;
+      });
+    }
+
+    function priceForLog(log) {
+      const item = inventoryData.find(i => i.id === log.itemId || cleanSku(i.sku) === cleanSku(log.sku));
+      return number(item?.price);
+    }
+
+    function usageReportData() {
+      const rows = getReportOutRows();
+      const itemGroups = new Map();
+      const deptGroups = new Map();
+      let totalQty = 0, totalValue = 0;
+      rows.forEach(log => {
+        const qty = number(log.quantity);
+        const value = qty * priceForLog(log);
+        totalQty += qty; totalValue += value;
+        const itemKey = cleanSku(log.sku) || log.name || log.itemId || "unknown";
+        const currentItem = itemGroups.get(itemKey) || { sku: log.sku || "-", name: log.name || "-", unit: log.unit || "", qty: 0, value: 0 };
+        currentItem.qty += qty; currentItem.value += value;
+        itemGroups.set(itemKey, currentItem);
+        const dept = cleanText(log.departmentName || log.projectName || "ไม่ระบุแผนก/โครงการ");
+        const currentDept = deptGroups.get(dept) || { name: dept, count: 0, value: 0 };
+        currentDept.count += 1; currentDept.value += value;
+        deptGroups.set(dept, currentDept);
+      });
+      return {
+        rows,
+        totalQty,
+        totalValue,
+        topItems: [...itemGroups.values()].sort((a, b) => b.qty - a.qty).slice(0, 12),
+        topDepartments: [...deptGroups.values()].sort((a, b) => b.value - a.value || b.count - a.count).slice(0, 12)
+      };
+    }
+
+    window.renderUsageReports = function() {
+      const stats = document.getElementById("usage-report-stats");
+      if (!stats) return;
+      const data = usageReportData();
+      stats.innerHTML = `
+        ${statCard("จำนวนรายการเบิก", formatNumber(data.rows.length), "รายการในเดือนที่เลือก", "fa-file-signature", "blue")}
+        ${statCard("จำนวนเบิกรวม", formatNumber(data.totalQty), "รวมทุกหน่วยนับ", "fa-box-open", "amber")}
+        ${statCard("มูลค่าโดยประมาณ", "฿" + formatNumber(data.totalValue), "คำนวณจากราคา/หน่วย", "fa-sack-dollar", "emerald")}
+        ${statCard("แผนก/โครงการ", formatNumber(new Set(data.rows.map(r => r.departmentName || r.projectName || "ไม่ระบุ")).size), "ที่มีการเบิก", "fa-building-user", "indigo")}
+      `;
+      const itemBody = document.getElementById("report-top-items");
+      const deptBody = document.getElementById("report-top-departments");
+      if (itemBody) itemBody.innerHTML = data.topItems.length ? data.topItems.map(row => `<tr><td class="px-5 py-4"><div class="font-black text-slate-950">${escapeHtml(row.name)}</div><div class="text-xs font-mono text-slate-500 mt-1">${escapeHtml(row.sku)}</div></td><td class="px-5 py-4 text-right font-black text-rose-600">${formatNumber(row.qty)} <span class="text-xs text-slate-500">${escapeHtml(row.unit)}</span></td><td class="px-5 py-4 text-right font-black text-slate-900">฿${formatNumber(row.value)}</td></tr>`).join("") : `<tr><td colspan="3" class="px-5 py-10 text-center text-slate-500 font-bold">ยังไม่มีรายการเบิกในเดือนนี้</td></tr>`;
+      if (deptBody) deptBody.innerHTML = data.topDepartments.length ? data.topDepartments.map(row => `<tr><td class="px-5 py-4 font-black text-slate-950">${escapeHtml(row.name)}</td><td class="px-5 py-4 text-right font-black text-blue-700">${formatNumber(row.count)}</td><td class="px-5 py-4 text-right font-black text-slate-900">฿${formatNumber(row.value)}</td></tr>`).join("") : `<tr><td colspan="3" class="px-5 py-10 text-center text-slate-500 font-bold">ยังไม่มีข้อมูลแผนก/โครงการ</td></tr>`;
+    };
+
+    window.exportUsageReport = function() {
+      const data = usageReportData();
+      const rows = data.rows.map(log => [
+        formatDate(log.createdAt || log.clientCreatedAt),
+        log.docNumber || "",
+        log.sku || "",
+        log.name || "",
+        number(log.quantity),
+        log.unit || "",
+        log.requesterName || log.withdrawerName || log.actorName || "",
+        log.departmentName || log.projectName || "",
+        log.purpose || log.note || "",
+        number(log.quantity) * priceForLog(log)
+      ]);
+      downloadExcel(`usage-report-${reportMonthValue() || "all"}.xls`, ["วันที่", "เลขเอกสาร", "SKU", "สินค้า", "จำนวน", "หน่วย", "ผู้เบิก", "แผนก/โครงการ", "วัตถุประสงค์", "มูลค่าโดยประมาณ"], rows, "รายงานการใช้ของ");
+    };
+
+    window.printUsageReport = function() {
+      const data = usageReportData();
+      const rows = data.topItems.map(row => [row.sku, row.name, `${formatNumber(row.qty)} ${row.unit}`, "฿" + formatNumber(row.value)]);
+      const table = buildHtmlTable(["SKU", "สินค้า", "จำนวนเบิก", "มูลค่าโดยประมาณ"], rows);
+      const meta = `<p>เดือนที่เลือก: <b>${escapeHtml(reportMonthValue() || "ทั้งหมด")}</b> | จำนวนรายการเบิก: <b>${formatNumber(data.rows.length)}</b> | มูลค่าโดยประมาณ: <b>฿${formatNumber(data.totalValue)}</b></p>`;
+      openPrintWindow("รายงานการใช้ของ", `${meta}${table}`);
+    };
 
     // =========================
     // Batch Receive
@@ -2184,11 +2624,14 @@
 
       const noteInput = document.getElementById("stock-note");
       const actorInput = document.getElementById("stock-actor-name");
+      const deptInput = document.getElementById("stock-department");
       const noteRaw = cleanText(noteInput?.value);
       const actorRaw = cleanText(actorInput?.value);
+      const deptRaw = cleanText(deptInput?.value);
 
       noteInput?.classList.remove("border-rose-300", "bg-rose-50");
       actorInput?.classList.remove("border-rose-300", "bg-rose-50");
+      deptInput?.classList.remove("border-rose-300", "bg-rose-50");
 
       if (type === "out" && !actorRaw) {
         actorInput?.classList.add("border-rose-300", "bg-rose-50");
@@ -2201,6 +2644,13 @@
         noteInput?.classList.add("border-rose-300", "bg-rose-50");
         noteInput?.focus();
         showToast("กรุณาระบุว่าเบิกไปใช้ทำอะไร", "error");
+        return;
+      }
+
+      if (type === "out" && !deptRaw) {
+        deptInput?.classList.add("border-rose-300", "bg-rose-50");
+        deptInput?.focus();
+        showToast("กรุณาระบุแผนก / โครงการ / งาน", "error");
         return;
       }
 
@@ -2219,7 +2669,7 @@
         const actorName = actorRaw || getActorName();
         rememberActorName(actorName);
         const docNumber = generateDocumentNumber(type === "out" ? "OUT" : "IN");
-        const logExtra = type === "out" ? { docNumber, withdrawerName: actorName, requesterName: actorName, purpose: note, clientCreatedAt: new Date().toISOString() } : { docNumber, clientCreatedAt: new Date().toISOString() };
+        const logExtra = type === "out" ? { docNumber, withdrawerName: actorName, requesterName: actorName, purpose: note, departmentName: deptRaw, projectName: deptRaw, clientCreatedAt: new Date().toISOString() } : { docNumber, departmentName: deptRaw, projectName: deptRaw, clientCreatedAt: new Date().toISOString() };
         const logData = buildLog(type, item, amount, beforeQty, afterQty, note, actorName, logExtra);
         batch.update(itemRef, { quantity: afterQty, updatedAt: serverTimestamp() });
         batch.set(logRef, logData);
@@ -2294,7 +2744,7 @@
 
       return historyData.filter(item => {
         if (typeFilter && item.type !== typeFilter) return false;
-        const text = `${item.type || ""} ${historyTypeText(item.type)} ${item.sku || ""} ${item.name || ""} ${item.note || ""} ${item.purpose || ""} ${item.actorName || ""} ${item.withdrawerName || ""} ${item.requesterName || ""} ${item.actor || ""} ${item.location || ""} ${item.supplierName || ""} ${item.lotCode || ""} ${item.lotSupplier || ""} ${item.auditReason || ""} ${item.adjustmentDiff || ""}`.toLowerCase();
+        const text = `${item.type || ""} ${historyTypeText(item.type)} ${item.sku || ""} ${item.name || ""} ${item.note || ""} ${item.purpose || ""} ${item.actorName || ""} ${item.withdrawerName || ""} ${item.requesterName || ""} ${item.actor || ""} ${item.location || ""} ${item.supplierName || ""} ${item.lotCode || ""} ${item.lotSupplier || ""} ${item.auditReason || ""} ${item.adjustmentDiff || ""} ${item.departmentName || ""} ${item.projectName || ""} ${item.batchWithdrawal ? "ใบเบิกหลายรายการ" : ""}`.toLowerCase();
         if (!text.includes(queryText)) return false;
         const date = toDateObject(item.createdAt);
         if (fromDate && (!date || date < new Date(`${fromDate}T00:00:00`))) return false;
@@ -2378,10 +2828,11 @@
         number(item.afterQty),
         item.docNumber || "",
         item.lotCode || "",
+        item.departmentName || item.projectName || "",
         historyNoteText(item),
         historyPersonText(item)
       ]);
-      downloadExcel("factory-stock-history.xls", ["วันที่/เวลา", "ประเภท", "SKU", "ชื่อสินค้า", "จำนวน", "หน่วย", "ก่อน", "หลัง", "เลขเอกสาร", "รหัสล็อต", "เบิกไปใช้/หมายเหตุ", "ผู้เบิก/ผู้ทำรายการ"], rows, "ประวัติรับเข้า-เบิกออก");
+      downloadExcel("factory-stock-history.xls", ["วันที่/เวลา", "ประเภท", "SKU", "ชื่อสินค้า", "จำนวน", "หน่วย", "ก่อน", "หลัง", "เลขเอกสาร", "รหัสล็อต", "แผนก/โครงการ", "เบิกไปใช้/หมายเหตุ", "ผู้เบิก/ผู้ทำรายการ"], rows, "ประวัติรับเข้า-เบิกออก");
     };
 
 
@@ -2733,7 +3184,7 @@
       const docNo = item.docNumber || item.lotCode || "-";
       const rows = [[item.sku || "-", item.name || "-", `${formatNumber(number(item.quantity))} ${item.unit || ""}`, formatNumber(item.beforeQty), formatNumber(item.afterQty), historyNoteText(item)]];
       const table = buildHtmlTable(["SKU", "สินค้า", "จำนวน", "ก่อน", "หลัง", isOut ? "เบิกไปใช้ทำอะไร" : "หมายเหตุ"], rows);
-      const meta = `<p>เลขที่เอกสาร: <b>${escapeHtml(docNo)}</b> | วันที่: <b>${formatDate(item.createdAt || item.clientCreatedAt)}</b></p><p>${escapeHtml(historyPersonLabel(item))}: <b>${escapeHtml(historyPersonText(item))}</b> | ตำแหน่งจัดเก็บ: <b>${escapeHtml(item.location || "-")}</b></p>`;
+      const meta = `<p>เลขที่เอกสาร: <b>${escapeHtml(docNo)}</b> | วันที่: <b>${formatDate(item.createdAt || item.clientCreatedAt)}</b></p><p>${escapeHtml(historyPersonLabel(item))}: <b>${escapeHtml(historyPersonText(item))}</b> | แผนก/โครงการ: <b>${escapeHtml(item.departmentName || item.projectName || "-")}</b> | ตำแหน่งจัดเก็บ: <b>${escapeHtml(item.location || "-")}</b></p>`;
       const sign = `<div class="signature"><div class="signbox"><div class="line"></div>ผู้ทำรายการ</div><div class="signbox"><div class="line"></div>${isOut ? "ผู้เบิก/ผู้รับของ" : "ผู้รับเข้า"}</div><div class="signbox"><div class="line"></div>ผู้อนุมัติ</div></div>`;
       openPrintWindow(title, `${meta}${table}${sign}`);
     };
@@ -3113,7 +3564,13 @@
       setDatalistOptions("actor-suggestions", [
         getActorName(),
         ...historyData.map(item => item.actorName || item.actor),
+        ...historyData.map(item => item.requesterName || item.withdrawerName),
+        ...historyData.map(item => item.recordedBy),
         ...lotsData.map(lot => lot.actorName || lot.actor)
+      ]);
+      setDatalistOptions("department-suggestions", [
+        ...historyData.map(item => item.departmentName || item.projectName),
+        "ซ่อมบำรุง", "ฝ่ายผลิต", "คลังสินค้า", "สำนักงาน", "แพ็กกิ้ง", "งานติดตั้ง", "งานซ่อมฉุกเฉิน"
       ]);
     }
 
