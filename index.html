@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>FactoryStock Pro v12 - ระบบจัดการสต๊อกโรงงาน</title>
+  <title>FactoryStock Pro v13 - ระบบจัดการสต๊อกโรงงาน</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <style>
@@ -128,6 +128,9 @@
         <button onclick="switchView('settings')" id="nav-settings" class="nav-idle w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-left font-bold">
           <i class="fa-solid fa-gear w-5"></i> ตั้งค่าระบบ
         </button>
+        <button onclick="switchView('guide')" id="nav-guide" class="nav-idle w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-left font-bold">
+          <i class="fa-solid fa-circle-question w-5"></i> คู่มือใช้งาน
+        </button>
       </nav>
 
       <div class="p-4 border-t border-white/10 space-y-3">
@@ -161,11 +164,13 @@
               <option value="inventory">คลังสินค้า</option>
               <option value="receive">รับเข้าเป็นล็อต</option>
               <option value="withdraw">ใบเบิกหลายรายการ</option>
+              <option value="more">เพิ่มเติม</option>
               <option value="lots">ตรวจสอบล็อต</option>
               <option value="history">ประวัติรายการ</option>
               <option value="reports">รายงานการใช้ของ</option>
               <option value="yearend">สำรอง/ปิดปี</option>
               <option value="settings">ตั้งค่าระบบ</option>
+              <option value="guide">คู่มือใช้งาน</option>
             </select>
           </div>
         </div>
@@ -673,6 +678,11 @@
                   <input id="settings-access-code" type="text" class="mt-2 w-full p-3 rounded-2xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none font-semibold" />
                   <p class="mt-1 text-xs text-amber-600 font-bold">หลังเปลี่ยนรหัส ให้กดออกจากระบบแล้วเข้าใหม่ด้วยรหัสใหม่</p>
                 </div>
+                <div>
+                  <label class="text-sm font-black text-slate-700">รหัสแอดมินสำหรับปุ่มอันตราย</label>
+                  <input id="settings-admin-code" type="text" placeholder="เช่น 9999" class="mt-2 w-full p-3 rounded-2xl border border-slate-200 bg-slate-50 focus:bg-white focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none font-semibold" />
+                  <p class="mt-1 text-xs text-rose-600 font-bold">ใช้ก่อนล้างข้อมูล, Restore, ปรับยอด, ปิดใช้งาน และยกเลิกรายการ</p>
+                </div>
               </div>
               <div>
                 <label class="text-sm font-black text-slate-700">ข้อความหัวรายงาน</label>
@@ -709,37 +719,108 @@
         </div>
       </section>
 
+
+      <!-- More Menu -->
+      <section id="view-more" class="hidden-view flex-1 p-4 sm:p-6 lg:p-8">
+        <div class="max-w-7xl mx-auto space-y-5">
+          <div class="bg-white rounded-3xl soft-card border border-slate-200 p-5 sm:p-6">
+            <div class="flex items-center gap-4">
+              <div class="w-14 h-14 rounded-3xl bg-blue-50 text-blue-700 flex items-center justify-center border border-blue-100">
+                <i class="fa-solid fa-grip text-2xl"></i>
+              </div>
+              <div>
+                <h3 class="text-2xl font-black text-slate-950">เพิ่มเติม</h3>
+                <p class="text-sm text-slate-500 mt-1">รวมเมนูที่ไม่ได้ใช้ทุกวันไว้ในหน้านี้ เพื่อให้เมนูล่างบนมือถือไม่รก</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+            <button onclick="switchView('history')" class="text-left bg-white rounded-3xl soft-card border border-slate-200 p-5 hover:border-blue-200 hover:bg-blue-50 transition-all">
+              <div class="w-12 h-12 rounded-2xl bg-blue-50 text-blue-700 flex items-center justify-center mb-4"><i class="fa-solid fa-clock-rotate-left text-xl"></i></div>
+              <div class="font-black text-slate-950 text-lg">ประวัติรายการ</div>
+              <p class="text-sm text-slate-500 mt-1">ดูย้อนหลัง รับเข้า เบิกออก ปรับยอด และยกเลิกรายการ</p>
+            </button>
+            <button onclick="switchView('lots')" class="text-left bg-white rounded-3xl soft-card border border-slate-200 p-5 hover:border-blue-200 hover:bg-blue-50 transition-all">
+              <div class="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-700 flex items-center justify-center mb-4"><i class="fa-solid fa-barcode text-xl"></i></div>
+              <div class="font-black text-slate-950 text-lg">ตรวจสอบล็อต</div>
+              <p class="text-sm text-slate-500 mt-1">ดูว่าแต่ละล็อตรับเข้า มีสินค้าอะไรบ้าง</p>
+            </button>
+            <button onclick="switchView('reports')" class="text-left bg-white rounded-3xl soft-card border border-slate-200 p-5 hover:border-blue-200 hover:bg-blue-50 transition-all">
+              <div class="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center mb-4"><i class="fa-solid fa-chart-line text-xl"></i></div>
+              <div class="font-black text-slate-950 text-lg">รายงานการใช้ของ</div>
+              <p class="text-sm text-slate-500 mt-1">สรุปของที่เบิกเยอะ แผนกที่ใช้เยอะ และพิมพ์รายงาน</p>
+            </button>
+            <button onclick="exportReorderList()" class="text-left bg-white rounded-3xl soft-card border border-slate-200 p-5 hover:border-amber-200 hover:bg-amber-50 transition-all">
+              <div class="w-12 h-12 rounded-2xl bg-amber-50 text-amber-700 flex items-center justify-center mb-4"><i class="fa-solid fa-cart-plus text-xl"></i></div>
+              <div class="font-black text-slate-950 text-lg">รายการต้องสั่งซื้อ</div>
+              <p class="text-sm text-slate-500 mt-1">Export รายการของหมด/ใกล้หมดไปใช้จัดซื้อ</p>
+            </button>
+            <button onclick="switchView('settings')" class="text-left bg-white rounded-3xl soft-card border border-slate-200 p-5 hover:border-blue-200 hover:bg-blue-50 transition-all">
+              <div class="w-12 h-12 rounded-2xl bg-slate-100 text-slate-700 flex items-center justify-center mb-4"><i class="fa-solid fa-gear text-xl"></i></div>
+              <div class="font-black text-slate-950 text-lg">ตั้งค่าระบบ / นำเข้า CSV</div>
+              <p class="text-sm text-slate-500 mt-1">แก้ชื่อระบบ รหัสเข้าเว็บ รหัสแอดมิน และนำเข้าข้อมูลสินค้า</p>
+            </button>
+            <button onclick="switchView('yearend')" class="text-left bg-white rounded-3xl soft-card border border-slate-200 p-5 hover:border-rose-200 hover:bg-rose-50 transition-all">
+              <div class="w-12 h-12 rounded-2xl bg-rose-50 text-rose-700 flex items-center justify-center mb-4"><i class="fa-solid fa-shield-halved text-xl"></i></div>
+              <div class="font-black text-slate-950 text-lg">สำรอง / ปิดปี</div>
+              <p class="text-sm text-slate-500 mt-1">สำรองข้อมูล, Restore, ล้างประวัติ และเริ่มรอบปีใหม่</p>
+            </button>
+            <button onclick="switchView('guide')" class="text-left bg-white rounded-3xl soft-card border border-slate-200 p-5 hover:border-blue-200 hover:bg-blue-50 transition-all sm:col-span-2 xl:col-span-3">
+              <div class="w-12 h-12 rounded-2xl bg-cyan-50 text-cyan-700 flex items-center justify-center mb-4"><i class="fa-solid fa-circle-question text-xl"></i></div>
+              <div class="font-black text-slate-950 text-lg">คู่มือการใช้งาน</div>
+              <p class="text-sm text-slate-500 mt-1">สรุปวิธีเพิ่มสินค้า รับเข้า เบิกออก ตรวจสอบล็อต ปิดปี และข้อควรระวัง</p>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <!-- User Guide -->
+      <section id="view-guide" class="hidden-view flex-1 p-4 sm:p-6 lg:p-8">
+        <div class="max-w-5xl mx-auto space-y-5">
+          <div class="bg-white rounded-3xl soft-card border border-slate-200 p-5 sm:p-6">
+            <div class="flex items-center gap-4">
+              <div class="w-14 h-14 rounded-3xl bg-cyan-50 text-cyan-700 flex items-center justify-center border border-cyan-100"><i class="fa-solid fa-circle-question text-2xl"></i></div>
+              <div>
+                <h3 class="text-2xl font-black text-slate-950">คู่มือการใช้งาน</h3>
+                <p class="text-sm text-slate-500 mt-1">ไว้ให้คนอื่นเปิดอ่านได้ทันที ไม่ต้องถามวิธีใช้ซ้ำ</p>
+              </div>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="bg-white rounded-3xl border border-slate-200 p-5 soft-card"><h4 class="font-black text-slate-950 mb-2"><i class="fa-solid fa-plus text-blue-600"></i> เพิ่มสินค้าใหม่</h4><p class="text-sm text-slate-600 leading-6">ไปที่ <b>คลังสินค้า</b> แล้วกดเพิ่มสินค้าใหม่ กรอก SKU, ชื่อสินค้า, หมวดหมู่, หน่วยนับ, จุดสั่งซื้อ และตำแหน่งจัดเก็บ ระบบจะกัน SKU ซ้ำให้อัตโนมัติ</p></div>
+            <div class="bg-white rounded-3xl border border-slate-200 p-5 soft-card"><h4 class="font-black text-slate-950 mb-2"><i class="fa-solid fa-truck-ramp-box text-emerald-600"></i> รับเข้าเป็นล็อต</h4><p class="text-sm text-slate-600 leading-6">ไปที่ <b>รับเข้า</b> เลือกสินค้าหลายรายการ กรอกจำนวน รหัสล็อต ผู้ขาย และผู้ทำรายการ ระบบจะเพิ่มยอดและบันทึกล็อตไว้ตรวจสอบย้อนหลัง</p></div>
+            <div class="bg-white rounded-3xl border border-slate-200 p-5 soft-card"><h4 class="font-black text-slate-950 mb-2"><i class="fa-solid fa-file-signature text-rose-600"></i> เบิกออกหลายรายการ</h4><p class="text-sm text-slate-600 leading-6">ไปที่ <b>ใบเบิก</b> ใส่ผู้เบิก แผนก/โครงการ และวัตถุประสงค์ จากนั้นเพิ่มรายการที่ต้องการเบิก ระบบจะหักสต๊อกและออกเลขเอกสารให้</p></div>
+            <div class="bg-white rounded-3xl border border-slate-200 p-5 soft-card"><h4 class="font-black text-slate-950 mb-2"><i class="fa-solid fa-clipboard-check text-indigo-600"></i> ตรวจนับ/ปรับยอด</h4><p class="text-sm text-slate-600 leading-6">ในหน้าคลัง กดไอคอนตรวจนับ ใส่ยอดจริงและเหตุผล ระบบจะบันทึกลงประวัติ ต้องใช้รหัสแอดมินเพื่อกันยอดเพี้ยนจากการกดพลาด</p></div>
+            <div class="bg-white rounded-3xl border border-slate-200 p-5 soft-card"><h4 class="font-black text-slate-950 mb-2"><i class="fa-solid fa-rotate-left text-amber-600"></i> ยกเลิกรายการ</h4><p class="text-sm text-slate-600 leading-6">ไปที่ <b>ประวัติรายการ</b> แล้วกดปุ่มยกเลิกในรายการรับเข้า/เบิกออก/ปรับยอด ระบบจะย้อนผลกระทบกับสต๊อกให้ และบันทึกประวัติการยกเลิกไว้</p></div>
+            <div class="bg-white rounded-3xl border border-slate-200 p-5 soft-card"><h4 class="font-black text-slate-950 mb-2"><i class="fa-solid fa-shield-halved text-rose-600"></i> สำรอง/ปิดปี</h4><p class="text-sm text-slate-600 leading-6">ก่อนล้างประวัติให้กดสำรองข้อมูลทั้งหมดก่อนเสมอ การล้าง/Restore/ปิดปีต้องใช้รหัสแอดมิน รหัสเริ่มต้นคือ <b>9999</b> และเปลี่ยนได้ที่ตั้งค่าระบบ</p></div>
+          </div>
+          <div class="bg-amber-50 rounded-3xl border border-amber-100 p-5 text-amber-900 text-sm leading-6 font-semibold">
+            <div class="font-black mb-1"><i class="fa-solid fa-triangle-exclamation"></i> ข้อควรระวัง</div>
+            <p>รหัสเข้าเว็บและรหัสแอดมินเป็นการกันแบบง่ายในหน้าเว็บ ถ้าจะใช้งานจริงหลายคน ควรปรับ Firebase Rules/Authentication ให้ปลอดภัยขึ้นในอนาคต</p>
+          </div>
+        </div>
+      </section>
+
     </main>
 
     <!-- Mobile Bottom Navigation -->
     <nav class="mobile-bottom-nav lg:hidden fixed bottom-0 inset-x-0 z-40 bg-white/95 backdrop-blur-xl border-t border-slate-200 px-3 pt-2 pb-[calc(env(safe-area-inset-bottom)+.5rem)]">
-      <div class="grid grid-cols-9 gap-1 max-w-3xl mx-auto">
+      <div class="grid grid-cols-5 gap-1 max-w-3xl mx-auto">
         <button onclick="switchView('dashboard')" id="bottom-nav-dashboard" class="mobile-tab-active flex flex-col items-center justify-center gap-1 rounded-2xl py-2 text-[10px] sm:text-[11px] font-black transition-all">
-          <i class="fa-solid fa-chart-pie text-lg"></i><span>ภาพรวม</span>
+          <i class="fa-solid fa-chart-pie text-lg"></i><span>หน้าแรก</span>
         </button>
         <button onclick="switchView('inventory')" id="bottom-nav-inventory" class="mobile-tab-idle flex flex-col items-center justify-center gap-1 rounded-2xl py-2 text-[10px] sm:text-[11px] font-black transition-all">
           <i class="fa-solid fa-list-check text-lg"></i><span>คลัง</span>
         </button>
-        <button onclick="switchView('receive')" id="bottom-nav-receive" class="mobile-tab-idle flex flex-col items-center justify-center gap-1 rounded-2xl py-2 text-[9px] sm:text-[11px] font-black transition-all">
-          <i class="fa-solid fa-truck-ramp-box text-lg"></i><span>รับล็อต</span>
+        <button onclick="switchView('receive')" id="bottom-nav-receive" class="mobile-tab-idle flex flex-col items-center justify-center gap-1 rounded-2xl py-2 text-[10px] sm:text-[11px] font-black transition-all">
+          <i class="fa-solid fa-truck-ramp-box text-lg"></i><span>รับเข้า</span>
         </button>
-        <button onclick="switchView('withdraw')" id="bottom-nav-withdraw" class="mobile-tab-idle flex flex-col items-center justify-center gap-1 rounded-2xl py-2 text-[9px] sm:text-[11px] font-black transition-all">
-          <i class="fa-solid fa-file-signature text-lg"></i><span>ใบเบิก</span>
+        <button onclick="switchView('withdraw')" id="bottom-nav-withdraw" class="mobile-tab-idle flex flex-col items-center justify-center gap-1 rounded-2xl py-2 text-[10px] sm:text-[11px] font-black transition-all">
+          <i class="fa-solid fa-file-signature text-lg"></i><span>เบิกออก</span>
         </button>
-        <button onclick="switchView('lots')" id="bottom-nav-lots" class="mobile-tab-idle flex flex-col items-center justify-center gap-1 rounded-2xl py-2 text-[9px] sm:text-[11px] font-black transition-all">
-          <i class="fa-solid fa-barcode text-lg"></i><span>ล็อต</span>
-        </button>
-        <button onclick="switchView('history')" id="bottom-nav-history" class="mobile-tab-idle flex flex-col items-center justify-center gap-1 rounded-2xl py-2 text-[9px] sm:text-[11px] font-black transition-all">
-          <i class="fa-solid fa-clock-rotate-left text-lg"></i><span>ประวัติ</span>
-        </button>
-        <button onclick="switchView('reports')" id="bottom-nav-reports" class="mobile-tab-idle flex flex-col items-center justify-center gap-1 rounded-2xl py-2 text-[9px] sm:text-[11px] font-black transition-all">
-          <i class="fa-solid fa-chart-line text-lg"></i><span>รายงาน</span>
-        </button>
-        <button onclick="switchView('yearend')" id="bottom-nav-yearend" class="mobile-tab-idle flex flex-col items-center justify-center gap-1 rounded-2xl py-2 text-[9px] sm:text-[11px] font-black transition-all">
-          <i class="fa-solid fa-shield-halved text-lg"></i><span>ปิดปี</span>
-        </button>
-        <button onclick="switchView('settings')" id="bottom-nav-settings" class="mobile-tab-idle flex flex-col items-center justify-center gap-1 rounded-2xl py-2 text-[9px] sm:text-[11px] font-black transition-all">
-          <i class="fa-solid fa-gear text-lg"></i><span>ตั้งค่า</span>
+        <button onclick="switchView('more')" id="bottom-nav-more" class="mobile-tab-idle flex flex-col items-center justify-center gap-1 rounded-2xl py-2 text-[10px] sm:text-[11px] font-black transition-all">
+          <i class="fa-solid fa-grip text-lg"></i><span>เพิ่มเติม</span>
         </button>
       </div>
     </nav>
@@ -976,12 +1057,12 @@
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
           <div class="lg:col-span-2 rounded-3xl border border-slate-200 overflow-hidden">
             <div class="p-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between gap-3">
-              <h4 class="font-black text-slate-950"><i class="fa-solid fa-clock-rotate-left text-blue-600"></i> ประวัติของสินค้านี้</h4>
+              <h4 class="font-black text-slate-950"><i class="fa-solid fa-book-open text-blue-600"></i> สมุดการ์ดสินค้า</h4>
               <span id="item-detail-history-count" class="text-xs font-black text-slate-500"></span>
             </div>
             <div class="overflow-x-auto">
               <table class="w-full text-left min-w-[720px]">
-                <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500"><tr><th class="px-4 py-3 font-black">วันที่</th><th class="px-4 py-3 font-black">ประเภท</th><th class="px-4 py-3 font-black text-right">จำนวน</th><th class="px-4 py-3 font-black">เอกสาร/หมายเหตุ</th><th class="px-4 py-3 font-black">พิมพ์</th></tr></thead>
+                <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500"><tr><th class="px-4 py-3 font-black">วันที่</th><th class="px-4 py-3 font-black">ประเภท</th><th class="px-4 py-3 font-black text-right">เข้า/ออก</th><th class="px-4 py-3 font-black text-right">ก่อน</th><th class="px-4 py-3 font-black text-right">หลัง</th><th class="px-4 py-3 font-black">เอกสาร/หมายเหตุ</th><th class="px-4 py-3 font-black">พิมพ์</th></tr></thead>
                 <tbody id="item-detail-history" class="divide-y divide-slate-100"></tbody>
               </table>
             </div>
@@ -1052,6 +1133,7 @@
       organization: "ระบบจัดการสต๊อกโรงงาน",
       currentYear: "2569",
       accessCode: ACCESS_CODE,
+      adminCode: "9999",
       reportHeader: "รายงานระบบจัดการสต๊อก",
       defaultUnits: "ชิ้น, กล่อง, แพ็ก, ชุด, ม้วน, เส้น, แผ่น, ถุง, คู่, รีม, ขวด, แกลลอน, กิโลกรัม, เมตร"
     };
@@ -1573,7 +1655,11 @@
             <div class="text-xs text-slate-400 font-black mb-1">${escapeHtml(historyNoteLabel(item))}</div>
             <div class="font-bold text-slate-700">${escapeHtml(historyNoteText(item))}</div>
             <div class="text-xs text-slate-500 mt-2"><i class="fa-solid fa-user"></i> <span class="font-black">${escapeHtml(historyPersonLabel(item))}:</span> ${escapeHtml(historyPersonText(item))}</div>
-            ${(item.type === "in" || item.type === "out" || item.type === "adjust") ? `<button onclick="printTransactionDocument('${item.id}')" class="mt-3 px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-black text-xs"><i class="fa-solid fa-print"></i> พิมพ์เอกสาร</button>` : ""}
+            ${item.canceled ? `<div class="mt-3 px-3 py-2 rounded-xl bg-amber-50 text-amber-700 border border-amber-100 text-xs font-black"><i class="fa-solid fa-ban"></i> ยกเลิกแล้ว</div>` : ""}
+            <div class="mt-3 flex flex-wrap gap-2">
+              ${(item.type === "in" || item.type === "out" || item.type === "adjust") ? `<button onclick="printTransactionDocument('${item.id}')" class="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-black text-xs"><i class="fa-solid fa-print"></i> พิมพ์เอกสาร</button>` : ""}
+              ${canUndoTransaction(item) ? `<button onclick="undoTransaction('${item.id}')" class="px-3 py-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-100 font-black text-xs"><i class="fa-solid fa-rotate-left"></i> ยกเลิกรายการ</button>` : ""}
+            </div>
           </td>
         </tr>
       `).join("");
@@ -1701,15 +1787,23 @@
     // Navigation
     // =========================
     window.switchView = function(viewId) {
-      ["dashboard", "inventory", "receive", "withdraw", "lots", "history", "reports", "yearend", "settings"].forEach(id => {
-        document.getElementById(`view-${id}`).classList.toggle("hidden-view", id !== viewId);
+      const viewIds = ["dashboard", "inventory", "receive", "withdraw", "lots", "history", "reports", "yearend", "settings", "more", "guide"];
+      const bottomPrimary = ["dashboard", "inventory", "receive", "withdraw"];
+      const bottomActive = bottomPrimary.includes(viewId) ? viewId : "more";
+
+      viewIds.forEach(id => {
+        const viewEl = document.getElementById(`view-${id}`);
+        if (viewEl) viewEl.classList.toggle("hidden-view", id !== viewId);
         const nav = document.getElementById(`nav-${id}`);
         if (nav) {
           nav.className = `${id === viewId ? "nav-active" : "nav-idle"} w-full flex items-center gap-3 px-4 py-3 rounded-2xl transition-all text-left font-bold`;
         }
+      });
+
+      ["dashboard", "inventory", "receive", "withdraw", "more"].forEach(id => {
         const bottomNav = document.getElementById(`bottom-nav-${id}`);
         if (bottomNav) {
-          bottomNav.className = `${id === viewId ? "mobile-tab-active" : "mobile-tab-idle"} flex flex-col items-center justify-center gap-1 rounded-2xl py-2 text-[10px] sm:text-[11px] font-black transition-all`;
+          bottomNav.className = `${id === bottomActive ? "mobile-tab-active" : "mobile-tab-idle"} flex flex-col items-center justify-center gap-1 rounded-2xl py-2 text-[10px] sm:text-[11px] font-black transition-all`;
         }
       });
 
@@ -1722,7 +1816,9 @@
         history: "ประวัติรายการ",
         reports: "รายงานการใช้ของ",
         yearend: "สำรองข้อมูล / เริ่มปีใหม่",
-        settings: "ตั้งค่าระบบ"
+        settings: "ตั้งค่าระบบ",
+        more: "เพิ่มเติม",
+        guide: "คู่มือใช้งาน"
       };
       document.getElementById("page-title").innerText = titles[viewId] || "FactoryStock";
       const mobileNav = document.getElementById("mobile-nav");
@@ -1952,6 +2048,7 @@
         showToast("ยอดใหม่ต้องไม่ติดลบ", "error");
         return;
       }
+      if (!(await requireAdminAction("ตรวจนับ / ปรับยอดสินค้า"))) return;
       rememberActorName(actorName);
       const submitBtn = document.getElementById("adjust-submit-btn");
       const original = submitBtn.innerHTML;
@@ -2547,6 +2644,7 @@
         okText: "ปิดใช้งาน"
       });
       if (!ok) return;
+      if (!(await requireAdminAction("ปิดใช้งานสินค้า"))) return;
 
       try {
         const batch = writeBatch(db);
@@ -2589,6 +2687,7 @@
         okText: "กู้คืน"
       });
       if (!ok) return;
+      if (!(await requireAdminAction("กู้คืนสินค้า"))) return;
       try {
         const batch = writeBatch(db);
         batch.update(doc(db, "artifacts", appId, "public", "data", "inventory", id), {
@@ -2707,6 +2806,63 @@
         createdAt: serverTimestamp()
       };
     }
+
+
+    function canUndoTransaction(item) {
+      if (!item || item.canceled || item.type === "cancel") return false;
+      return ["in", "out", "adjust"].includes(item.type) && !!(item.id || item.itemId || item.sku);
+    }
+
+    window.undoTransaction = async function(transactionId) {
+      const tx = historyData.find(h => h.id === transactionId);
+      if (!tx) {
+        showToast("ไม่พบรายการที่ต้องการยกเลิก", "error");
+        return;
+      }
+      if (!canUndoTransaction(tx)) {
+        showToast("รายการนี้ยกเลิกไม่ได้ หรือเคยถูกยกเลิกแล้ว", "error");
+        return;
+      }
+      const item = inventoryData.find(i => i.id === tx.itemId) || inventoryData.find(i => cleanSku(i.sku) === cleanSku(tx.sku));
+      if (!item) {
+        showToast("ไม่พบสินค้าในคลังสำหรับย้อนรายการนี้", "error");
+        return;
+      }
+      const currentQty = number(item.quantity);
+      const qty = number(tx.quantity);
+      const adjustDiff = Number.isFinite(parseFloat(tx.adjustmentDiff)) ? number(tx.adjustmentDiff) : (number(tx.afterQty) - number(tx.beforeQty));
+      const delta = tx.type === "in" ? -qty : (tx.type === "out" ? qty : -adjustDiff);
+      const newQty = currentQty + delta;
+      if (newQty < 0) {
+        showToast("ยกเลิกไม่ได้ เพราะยอดคงเหลือจะติดลบ", "error");
+        return;
+      }
+      const ok = await confirmDialog({
+        title: "ยกเลิกรายการนี้?",
+        message: `ระบบจะย้อนผลของรายการ ${historyTypeText(tx.type)} ${tx.docNumber || tx.lotCode || tx.id || ""} และปรับยอด ${item.name || item.sku || "สินค้า"} จาก ${formatNumber(currentQty)} เป็น ${formatNumber(newQty)}`,
+        okText: "ยืนยันยกเลิก"
+      });
+      if (!ok) return;
+      if (!(await requireAdminAction("ยกเลิกรายการรับเข้า/เบิกออก/ปรับยอด"))) return;
+      try {
+        const batch = writeBatch(db);
+        const itemRef = doc(db, "artifacts", appId, "public", "data", "inventory", item.id);
+        const txRef = doc(db, "artifacts", appId, "public", "data", "transactions", tx.id);
+        batch.update(itemRef, { quantity: newQty, updatedAt: serverTimestamp() });
+        batch.update(txRef, { canceled: true, canceledAt: serverTimestamp(), canceledBy: getActorName(), updatedAt: serverTimestamp() });
+        batch.set(doc(paths.transactions()), buildLog("cancel", item, Math.abs(delta), currentQty, newQty, `ยกเลิกรายการ ${historyTypeText(tx.type)} ${tx.docNumber || tx.lotCode || tx.id || ""}`, getActorName(), {
+          cancelOf: tx.id,
+          cancelOfDocNumber: tx.docNumber || tx.lotCode || "",
+          canceledTransactionType: tx.type,
+          clientCreatedAt: new Date().toISOString()
+        }));
+        await batch.commit();
+        showToast("ยกเลิกรายการและปรับยอดคืนแล้ว", "success");
+      } catch (error) {
+        console.error("Undo transaction error:", error);
+        showToast("ยกเลิกรายการไม่สำเร็จ", "error");
+      }
+    };
 
     // =========================
     // Export / Print / Filters
@@ -2940,6 +3096,24 @@
       return String(appSettings.accessCode || ACCESS_CODE).trim();
     }
 
+    function getAdminCode() {
+      return String(appSettings.adminCode || DEFAULT_SETTINGS.adminCode || "9999").trim();
+    }
+
+    async function requireAdminAction(actionName = "รายการสำคัญ") {
+      const expected = getAdminCode();
+      if (!expected) return true;
+      const code = window.prompt(`ต้องใช้รหัสแอดมินเพื่อทำรายการ: ${actionName}
+
+กรอกรหัสแอดมินเพื่อดำเนินการต่อ`);
+      if (code === null) return false;
+      if (String(code).trim() !== expected) {
+        showToast("รหัสแอดมินไม่ถูกต้อง", "error");
+        return false;
+      }
+      return true;
+    }
+
     function applySettingsToUI() {
       document.title = `${appSettings.systemName || "FactoryStock"} - ระบบจัดการสต๊อก`;
       const titleEls = document.querySelectorAll("h1");
@@ -2954,6 +3128,7 @@
         "settings-organization": appSettings.organization || DEFAULT_SETTINGS.organization,
         "settings-current-year": appSettings.currentYear || DEFAULT_SETTINGS.currentYear,
         "settings-access-code": appSettings.accessCode || ACCESS_CODE,
+        "settings-admin-code": appSettings.adminCode || DEFAULT_SETTINGS.adminCode,
         "settings-report-header": appSettings.reportHeader || DEFAULT_SETTINGS.reportHeader,
         "settings-default-units": appSettings.defaultUnits || DEFAULT_SETTINGS.defaultUnits
       };
@@ -2970,6 +3145,7 @@
         organization: cleanText(document.getElementById("settings-organization")?.value),
         currentYear: cleanText(document.getElementById("settings-current-year")?.value),
         accessCode: cleanText(document.getElementById("settings-access-code")?.value) || ACCESS_CODE,
+        adminCode: cleanText(document.getElementById("settings-admin-code")?.value) || DEFAULT_SETTINGS.adminCode,
         reportHeader: cleanText(document.getElementById("settings-report-header")?.value) || DEFAULT_SETTINGS.reportHeader,
         defaultUnits: cleanText(document.getElementById("settings-default-units")?.value) || DEFAULT_SETTINGS.defaultUnits,
         updatedAt: serverTimestamp()
@@ -3131,14 +3307,16 @@
       `;
       document.getElementById("item-detail-history-count").innerText = `${formatNumber(itemHistories.length)} รายการล่าสุด`;
       document.getElementById("item-detail-history").innerHTML = itemHistories.length ? itemHistories.map(h => `
-        <tr>
+        <tr class="${h.canceled ? "bg-amber-50/40" : ""}">
           <td class="px-4 py-3 text-sm font-bold text-slate-600">${formatDate(h.createdAt || h.clientCreatedAt)}</td>
-          <td class="px-4 py-3"><span class="status-pill ${historyPillClass(h.type)}">${historyTypeText(h.type)}</span></td>
+          <td class="px-4 py-3"><span class="status-pill ${historyPillClass(h.type)}">${historyTypeText(h.type)}</span>${h.canceled ? `<div class="mt-1 text-[11px] font-black text-amber-700">ยกเลิกแล้ว</div>` : ""}</td>
           <td class="px-4 py-3 text-right font-black ${h.type === "out" ? "text-rose-600" : "text-emerald-600"}">${h.type === "out" ? "-" : "+"}${formatNumber(number(h.quantity))} ${escapeHtml(h.unit || "")}</td>
-          <td class="px-4 py-3 text-sm"><div class="font-black text-slate-700">${escapeHtml(h.docNumber || h.lotCode || "-")}</div><div class="text-slate-500">${escapeHtml(historyNoteText(h))}</div></td>
-          <td class="px-4 py-3"><button onclick="printTransactionDocument('${h.id}')" class="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-black text-xs"><i class="fa-solid fa-print"></i></button></td>
+          <td class="px-4 py-3 text-right font-bold text-slate-500">${formatNumber(number(h.beforeQty))}</td>
+          <td class="px-4 py-3 text-right font-black text-slate-900">${formatNumber(number(h.afterQty))}</td>
+          <td class="px-4 py-3 text-sm"><div class="font-black text-slate-700">${escapeHtml(h.docNumber || h.lotCode || h.cancelOfDocNumber || "-")}</div><div class="text-slate-500">${escapeHtml(historyNoteText(h))}</div></td>
+          <td class="px-4 py-3"><div class="flex gap-2"><button onclick="printTransactionDocument('${h.id}')" class="px-3 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-black text-xs"><i class="fa-solid fa-print"></i></button>${canUndoTransaction(h) ? `<button onclick="undoTransaction('${h.id}')" class="px-3 py-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-100 font-black text-xs"><i class="fa-solid fa-rotate-left"></i></button>` : ""}</div></td>
         </tr>
-      `).join("") : `<tr><td colspan="5" class="px-4 py-8 text-center text-slate-500 font-bold">ยังไม่มีประวัติของสินค้านี้</td></tr>`;
+      `).join("") : `<tr><td colspan="7" class="px-4 py-8 text-center text-slate-500 font-bold">ยังไม่มีประวัติของสินค้านี้</td></tr>`;
       document.getElementById("item-detail-lots").innerHTML = itemLots.length ? itemLots.map(lot => `
         <button onclick="openLotDetail('${lot.id}')" class="w-full text-left rounded-2xl bg-slate-50 hover:bg-blue-50 border border-slate-200 hover:border-blue-100 p-4 transition-all">
           <div class="font-black text-slate-950">${escapeHtml(lot.lotCode || lot.id || "-")}</div>
@@ -3329,6 +3507,7 @@
         okText: "ล้างประวัติ"
       });
       if (!ok) return;
+      if (!(await requireAdminAction("ล้างประวัติรายการ"))) return;
       setButtonBusy("btn-clear-history", true, "กำลังล้างประวัติ...");
       try {
         const deleted = await deleteCollectionInBatches(paths.transactions(), "ประวัติ");
@@ -3348,6 +3527,7 @@
         okText: "ล้างและเริ่มปีใหม่"
       });
       if (!ok) return;
+      if (!(await requireAdminAction("ล้างประวัติและล็อตเพื่อเริ่มปีใหม่"))) return;
       setButtonBusy("btn-clear-year", true, "กำลังล้างข้อมูล...");
       try {
         const [deletedTransactions, deletedLots] = await Promise.all([
@@ -3370,6 +3550,7 @@
         okText: "สำรองและล้าง"
       });
       if (!ok) return;
+      if (!(await requireAdminAction("สำรองและเริ่มปีใหม่"))) return;
       setButtonBusy("btn-backup-new-year", true, "กำลังสำรองและล้าง...");
       try {
         const payload = await buildFullBackupPayload();
@@ -3446,6 +3627,7 @@
           okText: "Restore ข้อมูล"
         });
         if (!ok) return;
+        if (!(await requireAdminAction("Restore ข้อมูลสำรอง"))) return;
         setButtonBusy("btn-restore-backup", true, "กำลัง Restore...");
         await Promise.all([
           deleteCollectionInBatches(paths.inventory(), "สินค้า"),
@@ -3721,6 +3903,7 @@ function getActorName() {
         adjust: "ปรับยอด/ตรวจนับ",
         archive: "ปิดใช้งานสินค้า",
         restore: "กู้คืนสินค้า",
+        cancel: "ยกเลิกรายการ",
         delete: "ลบสินค้า"
       };
       return map[type] || "รายการ";
@@ -3734,6 +3917,7 @@ function getActorName() {
         adjust: "fa-clipboard-check",
         archive: "fa-box-archive",
         restore: "fa-rotate-left",
+        cancel: "fa-ban",
         delete: "fa-trash-can"
       };
       return map[type] || "fa-clock";
@@ -3747,6 +3931,7 @@ function getActorName() {
         adjust: "bg-indigo-50 text-indigo-700 border border-indigo-100",
         archive: "bg-slate-100 text-slate-700 border border-slate-200",
         restore: "bg-blue-50 text-blue-700 border border-blue-100",
+        cancel: "bg-amber-50 text-amber-700 border border-amber-100",
         delete: "bg-slate-100 text-slate-700 border border-slate-200"
       };
       return map[type] || "bg-slate-100 text-slate-700";
@@ -3762,6 +3947,7 @@ function getActorName() {
         adjust: "bg-indigo-50 text-indigo-700 border border-indigo-100",
         archive: "bg-slate-100 text-slate-700 border border-slate-200",
         restore: "bg-blue-50 text-blue-700 border border-blue-100",
+        cancel: "bg-amber-50 text-amber-700 border border-amber-100",
         delete: "bg-slate-100 text-slate-700 border border-slate-200"
       };
       return map[type] || "bg-slate-100 text-slate-700 border border-slate-200";
